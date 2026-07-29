@@ -31,7 +31,6 @@ def test_user_soft_delete():
 
 @pytest.mark.django_db
 class TestAuthEndpoints:
-
     @pytest.fixture
     def api_client(self):
         """Creates a fake web browser/client to test API endpoints."""
@@ -39,7 +38,7 @@ class TestAuthEndpoints:
 
     def test_request_otp_success(self, api_client):
         """Test that requesting an OTP returns 200 and caches the code."""
-        url = reverse('request-otp')  # Maps to the name='request-otp' in urls.py
+        url = reverse("request-otp")  # Maps to the name='request-otp' in urls.py
 
         response = api_client.post(url, {"phone_number": "+251911223344"})
 
@@ -53,8 +52,8 @@ class TestAuthEndpoints:
 
     def test_request_otp_invalid_phone_number(self, api_client):
         """Test that bad phone number formats are rejected."""
-        url = reverse('request-otp')
-        response = api_client.post(url, {"phone_number": "0911223344"}) # Missing +251
+        url = reverse("request-otp")
+        response = api_client.post(url, {"phone_number": "0911223344"})  # Missing +251
 
         assert response.status_code == 400
         assert "phone_number" in response.data
@@ -67,11 +66,8 @@ class TestAuthEndpoints:
         cache.set(f"otp_{phone}", "123456", timeout=300)
 
         # 2. Hit the verify endpoint
-        url = reverse('verify-otp')
-        response = api_client.post(url, {
-            "phone_number": phone,
-            "otp_code": "123456"
-        })
+        url = reverse("verify-otp")
+        response = api_client.post(url, {"phone_number": phone, "otp_code": "123456"})
 
         # 3. Prove it worked
         assert response.status_code == 200
@@ -90,22 +86,22 @@ class TestAuthEndpoints:
         phone = "+251944455566"
         cache.set(f"otp_{phone}", "123456", timeout=300)
 
-        url = reverse('verify-otp')
-        response = api_client.post(url, {
-            "phone_number": phone,
-            "otp_code": "000000"  # Wrong code
-        })
+        url = reverse("verify-otp")
+        response = api_client.post(
+            url,
+            {
+                "phone_number": phone,
+                "otp_code": "000000",  # Wrong code
+            },
+        )
 
         assert response.status_code == 400
         assert response.data["error"] == "Invalid OTP code."
 
     def test_verify_otp_expired_code(self, api_client):
         """Test that verifying a code that isn't in the cache fails."""
-        url = reverse('verify-otp')
-        response = api_client.post(url, {
-            "phone_number": "+251900000000",
-            "otp_code": "123456"
-        })
+        url = reverse("verify-otp")
+        response = api_client.post(url, {"phone_number": "+251900000000", "otp_code": "123456"})
 
         assert response.status_code == 400
         assert response.data["error"] == "OTP expired or does not exist."
@@ -117,7 +113,7 @@ class TestAuthEndpoints:
         refresh = RefreshToken.for_user(user)
 
         # 2. Hit the refresh endpoint
-        url = reverse('token-refresh')
+        url = reverse("token-refresh")
         response = api_client.post(url, {"refresh": str(refresh)})
 
         # 3. Prove it worked
@@ -132,14 +128,14 @@ class TestAuthEndpoints:
         refresh = RefreshToken.for_user(user)
 
         # 1. Hit the logout endpoint
-        url = reverse('token-blacklist')
+        url = reverse("token-blacklist")
         response = api_client.post(url, {"refresh": str(refresh)})
 
         # SimpleJWT returns 200 OK on successful blacklist
         assert response.status_code == 200
 
         # 2. THE ULTIMATE SECURITY TEST: Try to use the dead token to get a new session
-        refresh_url = reverse('token-refresh')
+        refresh_url = reverse("token-refresh")
         failed_response = api_client.post(refresh_url, {"refresh": str(refresh)})
 
         # 3. Prove the server rejects it

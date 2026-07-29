@@ -11,9 +11,11 @@ from .utils import generate_otp, send_sms
 
 User = get_user_model()
 
+
 class OTPRateThrottle(AnonRateThrottle):
     # Limits requests to 5 per minute to prevent SMS bombing
-    rate = '5/min'
+    rate = "5/min"
+
 
 class RequestOTPView(APIView):
     throttle_classes = [OTPRateThrottle]
@@ -23,7 +25,7 @@ class RequestOTPView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        phone_number = serializer.validated_data['phone_number']
+        phone_number = serializer.validated_data["phone_number"]
 
         # 1. Generate the 6-digit code
         otp_code = generate_otp()
@@ -35,21 +37,17 @@ class RequestOTPView(APIView):
         # 3. Print mock SMS to server terminal (or send via API in prod)
         send_sms(phone_number, otp_code)
 
-        return Response(
-            {"message": "OTP sent successfully."},
-            status=status.HTTP_200_OK
-        )
+        return Response({"message": "OTP sent successfully."}, status=status.HTTP_200_OK)
 
 
 class VerifyOTPView(APIView):
-
     def post(self, request):
         serializer = VerifyOTPSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        phone_number = serializer.validated_data['phone_number']
-        submitted_otp = serializer.validated_data['otp_code']
+        phone_number = serializer.validated_data["phone_number"]
+        submitted_otp = serializer.validated_data["otp_code"]
 
         # 1. Fetch code from Redis
         cache_key = f"otp_{phone_number}"
@@ -58,9 +56,8 @@ class VerifyOTPView(APIView):
         # 2. Validate expiration and match
         if cached_otp is None:
             return Response(
-				{"error": "OTP expired or does not exist."},
-				status=status.HTTP_400_BAD_REQUEST
-				)
+                {"error": "OTP expired or does not exist."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         if cached_otp != submitted_otp:
             return Response({"error": "Invalid OTP code."}, status=status.HTTP_400_BAD_REQUEST)
@@ -74,8 +71,7 @@ class VerifyOTPView(APIView):
         # 5. Issue JWT access and refresh tokens
         refresh = RefreshToken.for_user(user)
 
-        return Response({
-            "is_new_user": created,
-            "access": str(refresh.access_token),
-            "refresh": str(refresh)
-        }, status=status.HTTP_200_OK)
+        return Response(
+            {"is_new_user": created, "access": str(refresh.access_token), "refresh": str(refresh)},
+            status=status.HTTP_200_OK,
+        )
