@@ -34,6 +34,8 @@ INSTALLED_APPS = [
     "users.apps.UsersConfig",
     # Third-party Apps
     "pgvector",
+    'rest_framework',
+    'rest_framework_simplejwt',
 ]
 
 # Set the custom user model as the default auth model
