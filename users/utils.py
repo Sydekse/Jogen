@@ -1,5 +1,6 @@
-import random
 import logging
+import random
+
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -12,7 +13,7 @@ def send_sms(phone_number, otp_code):
     """
     Sends SMS in production, but prints to terminal in development.
     """
-    message = f"Your Jogen verification code is: {otp_code}. It expires in 5 minutes."
+    # message = f"Your Jogen verification code is: {otp_code}. It expires in 5 minutes."
 
     if settings.DEBUG:
         # DEVELOPMENT: Print clearly to the terminal running 'runserver'

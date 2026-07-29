@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+
 class RequestOTPSerializer(serializers.Serializer):
     # E.164 format validation (e.g., +251912345678)
     phone_number = serializers.RegexField(

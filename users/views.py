@@ -1,10 +1,11 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.throttling import AnonRateThrottle
-from django.core.cache import cache
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
+from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+
 from .serializers import RequestOTPSerializer, VerifyOTPSerializer
 from .utils import generate_otp, send_sms
 
@@ -56,7 +57,10 @@ class VerifyOTPView(APIView):
 
         # 2. Validate expiration and match
         if cached_otp is None:
-            return Response({"error": "OTP expired or does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+				{"error": "OTP expired or does not exist."},
+				status=status.HTTP_400_BAD_REQUEST
+				)
 
         if cached_otp != submitted_otp:
             return Response({"error": "Invalid OTP code."}, status=status.HTTP_400_BAD_REQUEST)
