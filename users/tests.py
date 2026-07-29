@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.urls import reverse
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 
 User = get_user_model()
 
@@ -108,3 +109,39 @@ class TestAuthEndpoints:
 
         assert response.status_code == 400
         assert response.data["error"] == "OTP expired or does not exist."
+
+    def test_token_refresh_success(self, api_client):
+        """Test that a valid refresh token yields a new access AND refresh token."""
+        # 1. Create a mock user and generate a manual token
+        user = User.objects.create(phone_number="+251900111222")
+        refresh = RefreshToken.for_user(user)
+
+        # 2. Hit the refresh endpoint
+        url = reverse('token-refresh')
+        response = api_client.post(url, {"refresh": str(refresh)})
+
+        # 3. Prove it worked
+        assert response.status_code == 200
+        assert "access" in response.data
+        # Because ROTATE_REFRESH_TOKENS = True in settings, we should get a new refresh token
+        assert "refresh" in response.data
+
+    def test_logout_blacklists_token(self, api_client):
+        """Test that logging out destroys the token permanently."""
+        user = User.objects.create(phone_number="+251900333444")
+        refresh = RefreshToken.for_user(user)
+
+        # 1. Hit the logout endpoint
+        url = reverse('token-blacklist')
+        response = api_client.post(url, {"refresh": str(refresh)})
+
+        # SimpleJWT returns 200 OK on successful blacklist
+        assert response.status_code == 200
+
+        # 2. THE ULTIMATE SECURITY TEST: Try to use the dead token to get a new session
+        refresh_url = reverse('token-refresh')
+        failed_response = api_client.post(refresh_url, {"refresh": str(refresh)})
+
+        # 3. Prove the server rejects it
+        assert failed_response.status_code == 401
+        assert failed_response.data["code"] == "token_not_valid"
