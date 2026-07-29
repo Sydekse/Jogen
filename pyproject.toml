@@ -1,0 +1,9 @@
+[tool.ruff]
+line-length = 100
+# Exclude auto-generated Django migrations from strict lint rules
+extend-exclude = ["**/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "RUF"]
+# Ignore RUF012 (mutable class attributes) specifically for Django models/settings
+ignore = ["RUF012"]
