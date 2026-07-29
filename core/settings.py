@@ -28,9 +28,15 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    # Local Apps
+    'users.apps.UsersConfig',
+
     # Third-party Apps
     'pgvector',
 ]
+
+# Set the custom user model as the default auth model
+AUTH_USER_MODEL = 'users.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
