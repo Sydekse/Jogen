@@ -1,26 +1,200 @@
 @import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --font-size: 16px;
+  --font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --background: #FAF8F5;
+  --foreground: #1A1018;
+  --card: #FFFFFF;
+  --card-foreground: #1A1018;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A1018;
+  --primary: #7C3AED;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F3E8FF;
+  --secondary-foreground: #4C1D95;
+  --muted: #EFE8FA;
+  --muted-foreground: #6B5F80;
+  --accent: #EDE4FA;
+  --accent-foreground: #4C1D95;
+  --destructive: #DC2626;
+  --destructive-foreground: #ffffff;
+  --border: rgba(124, 58, 237, 0.12);
+  --input: transparent;
+  --input-background: #F3EEFA;
+  --switch-background: #C4B5D9;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: #7C3AED;
+  --chart-1: #7C3AED;
+  --chart-2: #059669;
+  --chart-3: #D97706;
+  --chart-4: #0891B2;
+  --chart-5: #DC2626;
+  --radius: 0.75rem;
+  --sidebar: #F3EEFA;
+  --sidebar-foreground: #1A1018;
+  --sidebar-primary: #7C3AED;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #EDE4FA;
+  --sidebar-accent-foreground: #4C1D95;
+  --sidebar-border: rgba(124, 58, 237, 0.12);
+  --sidebar-ring: #7C3AED;
+}
+
+.dark {
+  --background: #1E1628;
+  --foreground: #F2EEF8;
+  --card: #271E36;
+  --card-foreground: #F2EEF8;
+  --popover: #271E36;
+  --popover-foreground: #F2EEF8;
+  --primary: #A855F7;
+  --primary-foreground: #FFFFFF;
+  --secondary: #2D2240;
+  --secondary-foreground: #E2D9F3;
+  --muted: #2A1F3D;
+  --muted-foreground: #9E8EC0;
+  --accent: #2D2240;
+  --accent-foreground: #E2D9F3;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: rgba(255, 255, 255, 0.09);
+  --input: #2A1F3D;
+  --input-background: #2A1F3D;
+  --switch-background: #4C3A6E;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: #A855F7;
+  --chart-1: #A855F7;
+  --chart-2: #34D399;
+  --chart-3: #FBBF24;
+  --chart-4: #38BDF8;
+  --chart-5: #F87171;
+  --sidebar: #231A32;
+  --sidebar-foreground: #F2EEF8;
+  --sidebar-primary: #A855F7;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #2D2240;
+  --sidebar-accent-foreground: #E2D9F3;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #A855F7;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-family);
+  }
+
+  /**
+  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
+  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
+  */
+
+  html {
+    font-size: var(--font-size);
+  }
+
+  h1 {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h2 {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h4 {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  label {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  button {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  input {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-normal);
+    line-height: 1.5;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Override react-phone-number-input defaults to match Figma */
+.PhoneInput {
+  @apply gap-0;
+}
+.PhoneInputCountry {
+  @apply px-3 py-3 bg-muted border-r border-border m-0 h-full;
+}
+.PhoneInputCountryIcon {
+  @apply w-6 h-4 shadow-none border-none;
+}
+.PhoneInputCountrySelectArrow {
+  @apply ml-2 text-muted-foreground opacity-50;
 }
