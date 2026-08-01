@@ -21,6 +21,8 @@ function formatTime(s: number) {
 }
 
 export default function AuthScreen() {
+  const[errorMsg, setErrorMsg] = useState("")
+
   // 1. General App State
   const [lang, setLang] = useState<"en" | "am">("en");
   const [darkMode, setDarkMode] = useState(false);
@@ -36,12 +38,12 @@ export default function AuthScreen() {
 
 
 
+
   // 4. Form Controller for the phone input
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<AuthFormData>({
     mode: "onChange"
   });
 
-  // const[errorMsg, setErrorMsg] = useState("")
 
   // 5. Timer Effect for OTP Screen
   useEffect(() => {
