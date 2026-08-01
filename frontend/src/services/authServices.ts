@@ -24,9 +24,15 @@ export async function sendOtpApi(phoneNumber: string) {
     }
 
     return { success: true, data };
-  } catch (error: any) {
-    console.error("API Error [requestOtp]:", error);
-    return { success: false, message: error.message || "Network error. Please try again." };
+  } catch (error: unknown) {
+    console.error("API Error [verifyOtp]:", error);
+
+    // Check if the unknown error is a standard JavaScript Error object
+    if (error instanceof Error) {
+      return { success: false, message: error.message };
+    }
+
+    return { success: false, message: "Network error. Please try again." };
   }
 }
 
@@ -53,8 +59,14 @@ export async function verifyOtpApi(phoneNumber: string, otpCode: string) {
     }
 
     return { success: true, data };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("API Error [verifyOtp]:", error);
-    return { success: false, message: error.message || "Network error. Please try again." };
+
+    // Check if the unknown error is a standard JavaScript Error object
+    if (error instanceof Error) {
+      return { success: false, message: error.message };
+    }
+
+    return { success: false, message: "Network error. Please try again." };
   }
 }

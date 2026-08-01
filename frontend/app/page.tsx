@@ -41,7 +41,7 @@ export default function AuthScreen() {
     mode: "onChange"
   });
 
-  const[errorMsg, setErrorMsg] = useState("")
+  // const[errorMsg, setErrorMsg] = useState("")
 
   // 5. Timer Effect for OTP Screen
   useEffect(() => {
