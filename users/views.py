@@ -34,7 +34,7 @@ class RequestOTPView(APIView):
         cache_key = f"otp_{phone_number}"
         cache.set(cache_key, otp_code, timeout=300)
 
-        # 3. Print mock SMS to server terminal (or send via API in prod)
+        # 3. Trigger mock SMS delivery
         send_sms(phone_number, otp_code)
 
         return Response({"message": "OTP sent successfully."}, status=status.HTTP_200_OK)
@@ -59,7 +59,7 @@ class VerifyOTPView(APIView):
                 {"error": "OTP expired or does not exist."}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        if cached_otp != submitted_otp:
+        if str(cached_otp) != str(submitted_otp):
             return Response({"error": "Invalid OTP code."}, status=status.HTTP_400_BAD_REQUEST)
 
         # 3. Delete code from Redis (one-time use safeguard)
