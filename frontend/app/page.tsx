@@ -13,7 +13,7 @@ export default function Page() {
       {!isAuthenticated ? (
         <AuthScreen onLoginSuccess={() => setIsAuthenticated(true)} />
       ) : (
-        <ChatInterface />
+        <ChatInterface onLogout={()=>setIsAuthenticated(false)}/>
       )}
     </main>
   );
