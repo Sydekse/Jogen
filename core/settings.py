@@ -2,8 +2,6 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-import dj_database_url
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -47,7 +45,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
-    "corsheaders"
+    "corsheaders",
 ]
 
 # Set the custom user model as the default auth model
@@ -87,14 +85,18 @@ WSGI_APPLICATION = "core.wsgi.application"
 
 
 # Database Configuration
-# Reads from DATABASE_URL env var in CI/Docker, falls back to local postgres
+# Uses OS environment variables if set (e.g., in CI), otherwise falls back to local Docker (port 5433)
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    "default": dj_database_url.config(
-        default="postgres://jogen_user:jogen_password@127.0.0.1:5433/jogen_db",
-        conn_max_age=600,
-    )
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("POSTGRES_DB", "jogen_db"),
+        "USER": os.environ.get("POSTGRES_USER", "jogen_user"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "jogen_password"),
+        "HOST": os.environ.get("POSTGRES_HOST", "localhost"),
+        "PORT": os.environ.get("POSTGRES_PORT", "5433"),
+    }
 }
 
 
@@ -140,13 +142,5 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:3000",
-# ]
-
 # Temporarily allow everything to test if CORS is the blocker
 CORS_ALLOW_ALL_ORIGINS = True
-
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:3000",
-# ]
