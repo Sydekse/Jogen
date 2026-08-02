@@ -2,7 +2,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-# import dj_database_url
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -87,19 +87,16 @@ WSGI_APPLICATION = "core.wsgi.application"
 
 
 # Database Configuration
-# Reads from environment variables, falls back to local postgres (5433)
+# Reads from DATABASE_URL env var in CI/Docker, falls back to local postgres
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("POSTGRES_DB", "jogen_db"),
-        "USER": os.environ.get("POSTGRES_USER", "jogen_user"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "jogen_password"),
-        "HOST": os.environ.get("POSTGRES_HOST", "localhost"),
-        "PORT": os.environ.get("POSTGRES_PORT", "5433"),
-    }
+    "default": dj_database_url.config(
+        default="postgres://jogen_user:jogen_password@127.0.0.1:5433/jogen_db",
+        conn_max_age=600,
+    )
 }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
