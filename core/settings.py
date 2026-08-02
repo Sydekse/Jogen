@@ -91,10 +91,14 @@ WSGI_APPLICATION = "core.wsgi.application"
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    "default": dj_database_url.config(
-        default="postgres://jogen_user:jogen_password@127.0.0.1:5433/jogen_db",
-        conn_max_age=600,
-    )
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "jogen_db",
+        "USER": "jogen_user",
+        "PASSWORD": "jogen_password",
+        "HOST": "localhost",
+        "PORT": "5433",  # <--- Make sure this is 5433 to match Docker's port mapping!
+    }
 }
 
 
