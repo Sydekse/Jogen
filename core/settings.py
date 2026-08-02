@@ -85,7 +85,8 @@ WSGI_APPLICATION = "core.wsgi.application"
 
 
 # Database Configuration
-# Uses OS environment variables if set (e.g., in CI), otherwise falls back to local Docker (port 5433)
+# Uses OS environment variables if set (e.g., in CI),
+#  otherwise falls back to local Docker (port 5433)
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
