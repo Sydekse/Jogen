@@ -87,20 +87,19 @@ WSGI_APPLICATION = "core.wsgi.application"
 
 
 # Database Configuration
-# Reads from DATABASE_URL env var in CI/Docker, falls back to local postgres
+# Reads from environment variables, falls back to local postgres (5433)
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "jogen_db",
-        "USER": "jogen_user",
-        "PASSWORD": "jogen_password",
-        "HOST": "localhost",
-        "PORT": "5433",  # <--- Make sure this is 5433 to match Docker's port mapping!
+        "NAME": os.environ.get("POSTGRES_DB", "jogen_db"),
+        "USER": os.environ.get("POSTGRES_USER", "jogen_user"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "jogen_password"),
+        "HOST": os.environ.get("POSTGRES_HOST", "localhost"),
+        "PORT": os.environ.get("POSTGRES_PORT", "5433"),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators

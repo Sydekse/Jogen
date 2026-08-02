@@ -59,12 +59,12 @@ jobs:
 
       - name: Run Django Migrations
         env:
-          DATABASE_URL: postgres://jogen_user:jogen_password@localhost:5432/jogen_db
+          POSTGRES_PORT: 5432
         run: python manage.py migrate
 
       - name: Run Pytest
         env:
-          DATABASE_URL: postgres://jogen_user:jogen_password@localhost:5432/jogen_db
+          POSTGRES_PORT: 5432
           REDIS_URL: redis://localhost:6379/0
         run: pytest --ds=core.settings -v
 
