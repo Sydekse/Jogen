@@ -2,6 +2,16 @@ import { ExpertDetail, ExpertFilterParams, ExpertListItem } from '@/src/types/ex
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
+export interface ExpertProfilePayload {
+  title: string;
+  bio: string;
+  license_number: string;
+  specialty_tags: string[];
+  rate_per_session: string;
+  wallet_provider: 'telebirr' | 'cbe_birr' | 'mpesa';
+  wallet_account_number: string;
+}
+
 export const expertService = {
   /**
    * Fetch verified experts with search and filter parameters
@@ -65,6 +75,29 @@ export const expertService = {
 
     if (!res.ok) {
       throw new Error('Failed to update availability hours.');
+    }
+
+    return res.json();
+  },
+
+  /**
+   * Update expert profile & credentials (Authenticated Expert)
+   */
+  async updateProfile(
+    payload: Partial<ExpertProfilePayload>,
+    token: string
+  ): Promise<ExpertDetail> {
+    const res = await fetch(`${API_BASE_URL}/experts/profile`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      throw new Error('Failed to update expert profile.');
     }
 
     return res.json();
