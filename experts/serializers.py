@@ -33,3 +33,44 @@ class ExpertAvailabilitySerializer(serializers.ModelSerializer):
         if not isinstance(value, dict):
             raise serializers.ValidationError("Availability must be a dictionary object.")
         return value
+
+
+class ExpertListSerializer(serializers.ModelSerializer):
+    """
+    Public discovery serializer for expert marketplace listings.
+    Only exposes non-sensitive verified information.
+    """
+
+    full_name = serializers.CharField(source="user.full_name", read_only=True)
+
+    class Meta:
+        model = Expert
+        fields = [
+            "id",
+            "full_name",
+            "title",
+            "specialty_tags",
+            "rate_per_session",
+            "verification_status",
+        ]
+
+
+class ExpertDetailSerializer(serializers.ModelSerializer):
+    """
+    Detailed public profile serializer including bio and weekly schedule matrix.
+    """
+
+    full_name = serializers.CharField(source="user.full_name", read_only=True)
+
+    class Meta:
+        model = Expert
+        fields = [
+            "id",
+            "full_name",
+            "title",
+            "bio",
+            "specialty_tags",
+            "rate_per_session",
+            "verification_status",
+            "availability",
+        ]

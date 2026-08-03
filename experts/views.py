@@ -1,10 +1,16 @@
+from django.db.models import Q
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Expert
-from .serializers import ExpertAvailabilitySerializer, ExpertProfileSerializer
+from .serializers import (
+    ExpertAvailabilitySerializer,
+    ExpertDetailSerializer,
+    ExpertListSerializer,
+    ExpertProfileSerializer,
+)
 
 
 class ExpertProfileView(APIView):
@@ -39,3 +45,84 @@ class ExpertAvailabilityView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ExpertListView(APIView):
+    """
+    GET /api/v1/experts
+    Returns verified experts with optional filtering by specialty tag,
+    search term, and rate range.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        # Always filter to return strictly verified experts
+        queryset = Expert.objects.filter(verification_status="verified")
+
+        # 1. Filter by specialty tag (uses GIN Index)
+        tag = request.query_params.get("tag")
+        if tag:
+            queryset = queryset.filter(specialty_tags__contains=[tag])
+
+        # 2. Text search on title, bio, or full_name
+        search = request.query_params.get("search")
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search)
+                | Q(bio__icontains=search)
+                | Q(user__full_name__icontains=search)
+            )
+
+        # 3. Filter by price range
+        min_rate = request.query_params.get("min_rate")
+        max_rate = request.query_params.get("max_rate")
+        if min_rate:
+            queryset = queryset.filter(rate_per_session__gte=min_rate)
+        if max_rate:
+            queryset = queryset.filter(rate_per_session__lte=max_rate)
+
+        serializer = ExpertListSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ExpertDetailView(APIView):
+    """
+    GET /api/v1/experts/{id}
+    Returns detailed public profile of a single verified expert.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, expert_id):
+        try:
+            expert = Expert.objects.get(id=expert_id, verification_status="verified")
+        except Expert.DoesNotExist:
+            return Response(
+                {"error": {"code": "NOT_FOUND", "message": "Verified expert not found."}},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = ExpertDetailSerializer(expert)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ExpertPublicAvailabilityView(APIView):
+    """
+    GET /api/v1/experts/{id}/availability
+    Returns weekly consultation availability matrix for a single verified expert.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, expert_id):
+        try:
+            expert = Expert.objects.get(id=expert_id, verification_status="verified")
+        except Expert.DoesNotExist:
+            return Response(
+                {"error": {"code": "NOT_FOUND", "message": "Verified expert not found."}},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = ExpertAvailabilitySerializer(expert)
+        return Response(serializer.data, status=status.HTTP_200_OK)
