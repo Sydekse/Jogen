@@ -46,4 +46,27 @@ export const expertService = {
 
     return res.json();
   },
+
+  /**
+   * Update availability matrix (Authenticated Expert)
+   */
+  async updateAvailability(
+    availability: Record<string, string[]>,
+    token: string
+  ): Promise<{ availability: Record<string, string[]> }> {
+    const res = await fetch(`${API_BASE_URL}/experts/availability`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ availability }),
+    });
+
+    if (!res.ok) {
+      throw new Error('Failed to update availability hours.');
+    }
+
+    return res.json();
+  },
 };
