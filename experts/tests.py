@@ -66,3 +66,103 @@ def test_patch_expert_availability_endpoint():
     )
     assert response.status_code == 200
     assert response.data["availability"]["mon"] == ["09:00-12:00", "14:00-17:00"]
+
+
+@pytest.mark.django_db
+def test_get_experts_returns_only_verified():
+    client = APIClient()
+
+    user_unverified = User.objects.create_user(
+        phone_number="+251911000001", full_name="Abebe Unverified"
+    )
+    Expert.objects.create(
+        user=user_unverified,
+        title="Unverified Lawyer",
+        verification_status="unverified",
+    )
+
+    user_verified = User.objects.create_user(
+        phone_number="+251911000002", full_name="Kebede Verified"
+    )
+    Expert.objects.create(
+        user=user_verified,
+        title="Corporate Legal Advisor",
+        specialty_tags=["startup_law", "tax"],
+        rate_per_session=800.00,
+        verification_status="verified",
+    )
+
+    # GET /api/v1/experts should only return verified expert
+    response = client.get("/api/v1/experts/")
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data[0]["full_name"] == "Kebede Verified"
+
+
+@pytest.mark.django_db
+def test_get_experts_filtering_by_tag_search_and_rate():
+    client = APIClient()
+
+    u1 = User.objects.create_user(phone_number="+251911111111", full_name="Expert One")
+    Expert.objects.create(
+        user=u1,
+        title="Tax Specialist",
+        specialty_tags=["tax"],
+        rate_per_session=300.00,
+        verification_status="verified",
+    )
+
+    u2 = User.objects.create_user(phone_number="+251911222222", full_name="Expert Two")
+    Expert.objects.create(
+        user=u2,
+        title="Intellectual Property Lawyer",
+        specialty_tags=["ip_law"],
+        rate_per_session=900.00,
+        verification_status="verified",
+    )
+
+    # 1. Filter by tag 'tax'
+    res_tag = client.get("/api/v1/experts/?tag=tax")
+    assert res_tag.status_code == 200
+    assert len(res_tag.data) == 1
+    assert res_tag.data[0]["full_name"] == "Expert One"
+
+    # 2. Text search 'Intellectual'
+    res_search = client.get("/api/v1/experts/?search=Intellectual")
+    assert res_search.status_code == 200
+    assert len(res_search.data) == 1
+    assert res_search.data[0]["full_name"] == "Expert Two"
+
+    # 3. Filter by max rate
+    res_rate = client.get("/api/v1/experts/?max_rate=500.00")
+    assert res_rate.status_code == 200
+    assert len(res_rate.data) == 1
+    assert res_rate.data[0]["full_name"] == "Expert One"
+
+
+@pytest.mark.django_db
+def test_get_single_expert_detail_and_availability():
+    client = APIClient()
+
+    user = User.objects.create_user(phone_number="+251911333333", full_name="Verified Legal Pro")
+    expert = Expert.objects.create(
+        user=user,
+        title="Senior Tech Attorney",
+        bio="Specializing in Ethiopian foreign investment and startup laws.",
+        specialty_tags=["startup_law"],
+        rate_per_session=1500.00,
+        verification_status="verified",
+        availability={"tue": ["09:00-12:00"]},
+    )
+
+    # GET /api/v1/experts/{id}
+    res_detail = client.get(f"/api/v1/experts/{expert.id}")
+    assert res_detail.status_code == 200
+    assert (
+        res_detail.data["bio"] == "Specializing in Ethiopian foreign investment and startup laws."
+    )
+
+    # GET /api/v1/experts/{id}/availability
+    res_avail = client.get(f"/api/v1/experts/{expert.id}/availability")
+    assert res_avail.status_code == 200
+    assert res_avail.data["availability"]["tue"] == ["09:00-12:00"]
