@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     # Local Apps
     "users.apps.UsersConfig",
     "ai_service.apps.AiServiceConfig",
+    "experts.apps.ExpertsConfig",
     # Third-party Apps
     "pgvector",
     "rest_framework",
