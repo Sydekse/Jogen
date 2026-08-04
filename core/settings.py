@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "users.apps.UsersConfig",
     "ai_service.apps.AiServiceConfig",
     "experts.apps.ExpertsConfig",
+    "bookings.apps.BookingsConfig",
     # Third-party Apps
     "pgvector",
     "rest_framework",
