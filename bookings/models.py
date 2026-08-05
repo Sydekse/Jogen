@@ -69,3 +69,36 @@ class Booking(models.Model):
 
     def __str__(self):
         return f"Booking {self.id} | Client: {self.client.phone_number} | Status: {self.status}"
+
+
+class SessionFile(models.Model):
+    """
+    SESSION_FILE entity storing file metadata for documents shared
+    during or prior to a consultation session.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    booking = models.ForeignKey(
+        "bookings.Booking",
+        on_delete=models.CASCADE,
+        related_name="session_files",
+        db_index=True,
+    )
+    uploader = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="uploaded_session_files",
+        db_index=True,
+    )
+    file_name = models.CharField(max_length=255)
+    file_size = models.BigIntegerField(help_text="File size in bytes")
+    mime_type = models.CharField(max_length=100)
+    s3_key = models.CharField(max_length=512, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = "bookings_session_file"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.file_name} ({self.file_size} bytes) - Booking {self.booking_id}"
