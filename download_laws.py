@@ -1,8 +1,9 @@
 import os
 import time
+from urllib.parse import urljoin
+
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin
 
 # Config
 TARGET_URL = "https://justice.gov.et/am/laws/proclamations/"

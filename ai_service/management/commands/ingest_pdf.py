@@ -1,5 +1,6 @@
 import os
 import time
+
 import fitz  # PyMuPDF
 from django.core.management.base import BaseCommand
 from google import genai
@@ -9,7 +10,10 @@ from ai_service.models import LegalDocumentEmbedding
 
 
 class Command(BaseCommand):
-    help = "Parses 2-column bilingual legal PDFs word-by-word, chunks them, and embeds into pgvector."
+    help = (
+    "Parses 2-column bilingual legal PDFs word-by-word, "
+    "chunks them, and embeds into pgvector."
+)
 
     def add_arguments(self, parser):
         parser.add_argument('pdf_path', type=str, help='Path to the PDF file')
@@ -44,8 +48,7 @@ class Command(BaseCommand):
             words = page.get_text("words")
 
             for w in words:
-                x0, y0, x1, y1, text, block_no, line_no, word_no = w
-
+                x0, _, x1, _, text, block_no, line_no, _ = w
                 # Check where the horizontal center of the word falls
                 word_center = (x0 + x1) / 2
 
@@ -95,8 +98,9 @@ class Command(BaseCommand):
             all_chunks.append((chunk, f"{doc_ref} (English)"))
 
         self.stdout.write(
-            f"Extracted {len(amharic_chunks)} Amharic chunks and {len(english_chunks)} English chunks."
-        )
+    f"Extracted {len(amharic_chunks)} Amharic chunks "
+    f"and {len(english_chunks)} English chunks."
+)
 
         # 3. Initialize Gemini Client
         api_key = os.getenv("GEMINI_API_KEY")
@@ -143,5 +147,8 @@ class Command(BaseCommand):
                 self.stderr.write(self.style.WARNING(f"Failed to embed chunk {i}: {e}"))
 
         self.stdout.write(
-            self.style.SUCCESS(f"Successfully ingested {saved_count} perfectly separated chunks for '{doc_ref}'!")
-        )
+    self.style.SUCCESS(
+        f"Successfully ingested {saved_count} perfectly "
+        f"separated chunks for '{doc_ref}'!"
+    )
+)
