@@ -40,3 +40,8 @@ frontend/.vercel/
 # typescript
 frontend/*.tsbuildinfo
 frontend/next-env.d.ts
+
+# Ignore raw data downloads and PDFs
+downloaded_laws/
+temp_docs/
+*.pdf

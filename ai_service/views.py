@@ -1,55 +1,35 @@
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import AllowAny
 
-from .models import ChatMessage
-from .serializers import ChatMessageSerializer, ChatQuerySerializer
 from .services import RAGPipelineService
 
 
-class ChatQueryView(APIView):
-    """
-    POST /api/v1/chat/query
-    Processes user regulatory questions through RAG pipeline.
-    """
-
-    permission_classes = [IsAuthenticated]
+class RAGChatView(APIView):
+    # Publicly accessible for development/testing
+    permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = ChatQuerySerializer(data=request.data)
-        if (
-            not serializer.is_serializer_valid()
-            if hasattr(serializer, "is_serializer_valid")
-            else not serializer.is_valid()
-        ):
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        user_query = request.data.get("query")
+        target_language = request.data.get("language", "en")
 
-        question = serializer.validated_data["question"]
-        rag_service = RAGPipelineService()
-
-        try:
-            rag_response = rag_service.execute_rag_query(user=request.user, user_query=question)
-            return Response(rag_response, status=status.HTTP_200_OK)
-        except Exception as e:
+        if not user_query:
             return Response(
-                {"error": {"code": "AI_SERVICE_UNAVAILABLE", "message": str(e)}},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                {"error": "The 'query' field is required."},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
+        try:
+            rag_service = RAGPipelineService()
+            result = rag_service.execute_rag_query(
+                user_query=user_query,
+                target_language=target_language
+            )
+            return Response(result, status=status.HTTP_200_OK)
 
-class ChatHistoryView(APIView):
-    """
-    GET /api/v1/chat/history
-    Returns previous AI conversations for authenticated user.
-    """
-
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        history = ChatMessage.objects.filter(sender=request.user, context_type="ai_chat").order_by(
-            "created_at"
-        )
-
-        serializer = ChatMessageSerializer(history, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
