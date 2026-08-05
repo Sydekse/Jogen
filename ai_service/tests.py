@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch, MagicMock
 from django.contrib.auth import get_user_model
 from pgvector.django import CosineDistance
 from rest_framework import status
@@ -18,13 +19,13 @@ def test_vector_store_similarity_search():
     LegalDocumentEmbedding.objects.create(
         doc_reference="Electronic Invoicing Directive 1142/2026 (English)",
         content_chunk="Rules regarding Electronic Sales Registration Systems...",
-        embedding=dummy_vec_1,  # <-- Using the variable here
+        embedding=dummy_vec_1,
     )
 
     LegalDocumentEmbedding.objects.create(
         doc_reference="Electronic Invoicing Directive 1142/2026 (Amharic)",
         content_chunk="የኤሌክትሮኒክ ደረሰኝ ሥርዓት...",
-        embedding=dummy_vec_2,  # <-- Using the variable here
+        embedding=dummy_vec_2,
     )
 
     query_vec = [0.9] * 384 + [0.1] * 384
@@ -45,12 +46,24 @@ class TestRAGChatAPI:
         self.client = APIClient()
         self.url = "/api/ai/chat/"
 
-    def test_rag_chat_endpoint_structure(self):
-        # Insert test data so the database returns context
+    @patch("ai_service.services.genai.Client")
+    def test_rag_chat_endpoint_structure(self, mock_genai_client):
+        # 1. Mock the Gemini SDK responses to avoid live API calls
+        mock_client_instance = mock_genai_client.return_value
+
+        mock_embed_result = MagicMock()
+        mock_embed_result.embeddings = [MagicMock(values=[0.5] * 768)]
+        mock_client_instance.models.embed_content.return_value = mock_embed_result
+
+        mock_interaction_result = MagicMock()
+        mock_interaction_result.output_text = "Mocked answer about SaaS providers."
+        mock_client_instance.interactions.create.return_value = mock_interaction_result
+
+        # 2. Insert test data so the database returns context
         LegalDocumentEmbedding.objects.create(
             doc_reference="Electronic Invoicing Directive 1142/2026 (English)",
             content_chunk="Software as a Service (SaaS) means a sales registration system...",
-            embedding=[0.5] * 768  # <-- Add a dummy embedding here as well
+            embedding=[0.5] * 768
         )
 
         payload = {
@@ -60,7 +73,7 @@ class TestRAGChatAPI:
 
         response = self.client.post(self.url, payload, format="json")
 
-        # Verify response structure and status
+        # 3. Verify response structure and status
         assert response.status_code == status.HTTP_200_OK
         assert "answer" in response.data
         assert "sources" in response.data
