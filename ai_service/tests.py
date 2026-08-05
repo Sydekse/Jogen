@@ -18,11 +18,13 @@ def test_vector_store_similarity_search():
     LegalDocumentEmbedding.objects.create(
         doc_reference="Electronic Invoicing Directive 1142/2026 (English)",
         content_chunk="Rules regarding Electronic Sales Registration Systems...",
+        embedding=dummy_vec_1,  # <-- Using the variable here
     )
 
     LegalDocumentEmbedding.objects.create(
         doc_reference="Electronic Invoicing Directive 1142/2026 (Amharic)",
         content_chunk="የኤሌክትሮኒክ ደረሰኝ ሥርዓት...",
+        embedding=dummy_vec_2,  # <-- Using the variable here
     )
 
     query_vec = [0.9] * 384 + [0.1] * 384
@@ -48,6 +50,7 @@ class TestRAGChatAPI:
         LegalDocumentEmbedding.objects.create(
             doc_reference="Electronic Invoicing Directive 1142/2026 (English)",
             content_chunk="Software as a Service (SaaS) means a sales registration system...",
+            embedding=[0.5] * 768  # <-- Add a dummy embedding here as well
         )
 
         payload = {
