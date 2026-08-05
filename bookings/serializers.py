@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Booking
+from .models import Booking, SessionFile
 
 
 class BookingCreateSerializer(serializers.Serializer):
@@ -43,3 +43,28 @@ class BookingDetailSerializer(serializers.ModelSerializer):
             "cancellation_reason",
             "created_at",
         ]
+
+
+class PresignedUploadRequestSerializer(serializers.Serializer):
+    file_name = serializers.CharField(max_length=255, required=True)
+    file_size = serializers.IntegerField(min_value=1, required=True)
+    mime_type = serializers.CharField(max_length=100, required=True)
+
+
+class SessionFileSerializer(serializers.ModelSerializer):
+    uploader_phone = serializers.CharField(source="uploader.phone_number", read_only=True)
+
+    class Meta:
+        model = SessionFile
+        fields = [
+            "id",
+            "booking",
+            "uploader",
+            "uploader_phone",
+            "file_name",
+            "file_size",
+            "mime_type",
+            "s3_key",
+            "created_at",
+        ]
+        read_only_fields = ["id", "booking", "uploader", "created_at"]

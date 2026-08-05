@@ -1,10 +1,12 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from bookings.models import Booking
 from experts.models import Expert
 
 User = get_user_model()
@@ -85,3 +87,85 @@ def test_double_booking_prevention():
     )
     assert res2.status_code == 400
     assert "slot" in res2.data
+
+
+@pytest.mark.django_db
+@patch("bookings.views.S3StorageService")
+def test_session_file_upload_and_download_flow(mock_s3_cls):
+    mock_s3 = mock_s3_cls.return_value
+    mock_s3.generate_presigned_upload_url.return_value = "https://s3.amazonaws.com/mock-upload-url"
+    mock_s3.generate_presigned_download_url.return_value = (
+        "https://s3.amazonaws.com/mock-download-url"
+    )
+
+    client_user = User.objects.create_user(phone_number="+251911444444")
+    expert_user = User.objects.create_user(phone_number="+251911555555")
+    expert = Expert.objects.create(user=expert_user, verification_status="verified")
+
+    start_time = timezone.now() + timedelta(days=1)
+    booking = Booking.objects.create(
+        client=client_user,
+        expert=expert,
+        scheduled_start=start_time,
+        scheduled_end=start_time + timedelta(minutes=30),
+        rate_snapshot=500.00,
+    )
+
+    client_api = APIClient()
+    client_api.force_authenticate(user=client_user)
+
+    # 1. Request presigned upload URL
+    res_url = client_api.post(
+        f"/api/v1/consultations/{booking.id}/files/upload-url",
+        {
+            "file_name": "business_tax_cert.pdf",
+            "file_size": 1024500,
+            "mime_type": "application/pdf",
+        },
+        format="json",
+    )
+    assert res_url.status_code == 200
+    assert "upload_url" in res_url.data
+    s3_key = res_url.data["s3_key"]
+
+    # 2. Register uploaded file metadata
+    res_reg = client_api.post(
+        f"/api/v1/consultations/{booking.id}/files",
+        {
+            "file_name": "business_tax_cert.pdf",
+            "file_size": 1024500,
+            "mime_type": "application/pdf",
+            "s3_key": s3_key,
+        },
+        format="json",
+    )
+    assert res_reg.status_code == 201
+    file_id = res_reg.data["id"]
+
+    # 3. Request presigned download URL
+    res_down = client_api.get(f"/api/v1/consultations/{booking.id}/files/{file_id}/download-url")
+    assert res_down.status_code == 200
+    assert res_down.data["download_url"] == "https://s3.amazonaws.com/mock-download-url"
+
+
+@pytest.mark.django_db
+def test_unauthorized_user_cannot_access_session_files():
+    client_user = User.objects.create_user(phone_number="+251911666666")
+    unauthorized_user = User.objects.create_user(phone_number="+251911777777")
+    expert_user = User.objects.create_user(phone_number="+251911888888")
+    expert = Expert.objects.create(user=expert_user, verification_status="verified")
+
+    start_time = timezone.now() + timedelta(days=1)
+    booking = Booking.objects.create(
+        client=client_user,
+        expert=expert,
+        scheduled_start=start_time,
+        scheduled_end=start_time + timedelta(minutes=30),
+        rate_snapshot=500.00,
+    )
+
+    unauth_api = APIClient()
+    unauth_api.force_authenticate(user=unauthorized_user)
+
+    res = unauth_api.get(f"/api/v1/consultations/{booking.id}/files")
+    assert res.status_code == 404
