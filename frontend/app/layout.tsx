@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 // 1. Initialize the font
@@ -25,6 +26,7 @@ export default function RootLayout({
       {/* 2. Apply the font class and your Tailwind theme classes */}
       <body className={`${plusJakarta.className} antialiased`}>
         {children}
+        <Toaster position="bottom-right" />
       </body>
     </html>
   );

@@ -58,6 +58,7 @@ class ChatMessage(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session_id = models.UUIDField(null=True, blank=True, db_index=True)
     booking_id = models.UUIDField(null=True, blank=True, db_index=True)
     sender = models.ForeignKey(
         settings.AUTH_USER_MODEL,

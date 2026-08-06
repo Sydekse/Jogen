@@ -1,0 +1,145 @@
+import React, { useState } from "react";
+import { MessageSquare, Users, BarChart3, Shield, ChevronLeft, ChevronRight, User, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { cn } from "@/src/lib/utils";
+import { JogenLogo } from "@/src/components/ui/jogenLogo";
+import { ChatSession } from "@/src/features/chat/ChatInterface";
+
+const NAV_ITEMS = [
+  { id: "experts", label: "Find Experts", icon: Users },
+  { id: "dashboard", label: "Expert Dashboard", icon: BarChart3 },
+  { id: "admin", label: "Admin Console", icon: Shield },
+  { id: "ai", label: "AI Assistant", icon: MessageSquare },
+];
+
+export function Sidebar({ 
+  screen, 
+  setScreen, 
+  isExpert, 
+  collapsed, 
+  onToggle,
+  sessions,
+  activeSessionId,
+  setActiveSessionId,
+  onNewChat,
+  userProfile
+}: {
+  screen: string; setScreen: (s: string) => void; isExpert: boolean;
+  collapsed: boolean; onToggle: () => void;
+  sessions?: ChatSession[];
+  activeSessionId?: string;
+  setActiveSessionId?: (id: string) => void;
+  onNewChat?: () => void;
+  userProfile?: Record<string, unknown> | null;
+}) {
+  const activeId = screen === "expert-detail" ? "experts" : screen === "profile" ? "profile" : screen;
+  const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
+
+  const fullName = (userProfile?.full_name as string) || "Amanuel Bekele";
+  const initials = fullName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
+  
+  return (
+    <aside className={cn(
+      "border-r border-border bg-card flex flex-col shrink-0 transition-all duration-200 overflow-hidden",
+      collapsed ? "w-14" : "w-56"
+    )}>
+      <div className="px-2.5 py-3 border-b border-border flex items-center justify-between gap-2 min-w-0">
+        <div className={cn("flex items-center gap-2.5 min-w-0 overflow-hidden transition-all duration-200", collapsed ? "w-0 opacity-0 pointer-events-none" : "flex-1 opacity-100")}>
+          <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shrink-0">
+            <JogenLogo className="w-4 h-4 text-primary-foreground" />
+          </div>
+          <span className="font-bold text-base tracking-tight text-foreground whitespace-nowrap">Jogen</span>
+        </div>
+        {collapsed && (
+          <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shrink-0 mx-auto">
+            <JogenLogo className="w-4 h-4 text-primary-foreground" />
+          </div>
+        )}
+        <button onClick={onToggle} className={cn(
+          "p-1 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shrink-0",
+          collapsed && "hidden"
+        )}>
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+      </div>
+      {collapsed && (
+        <button onClick={onToggle} className="flex items-center justify-center py-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      )}
+      <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto flex flex-col">
+        {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+          <div key={id}>
+            <button onClick={() => setScreen(id)} title={collapsed ? label : undefined}
+              className={cn("w-full flex items-center gap-3 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                collapsed ? "justify-center" : "",
+                activeId === id ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-accent")}>
+              <Icon className="w-4 h-4 shrink-0" />
+              {!collapsed && (
+                <div className="flex items-center flex-1 min-w-0 justify-between">
+                  <span>{label}</span>
+                  {id === "dashboard" && isExpert && (
+                    <span className="ml-auto text-xs font-bold px-1.5 py-0.5 rounded-full bg-primary-foreground/20">Expert</span>
+                  )}
+                  {id === "ai" && activeId === "ai" && (
+                    <div 
+                      className="p-0.5 rounded hover:bg-primary-foreground/20 ml-1" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsHistoryExpanded(!isHistoryExpanded);
+                      }}
+                    >
+                      {isHistoryExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    </div>
+                  )}
+                </div>
+              )}
+            </button>
+            {/* AI History Dropdown logic */}
+            {id === "ai" && activeId === "ai" && !collapsed && isHistoryExpanded && sessions && (
+              <div className="pl-9 pr-2 py-2 space-y-1">
+                <button onClick={onNewChat} className="w-full flex items-center gap-2 py-1.5 px-2 rounded-lg text-xs font-semibold text-primary hover:bg-primary/10 transition-colors">
+                  <Plus className="w-3 h-3" /> New Chat
+                </button>
+                {sessions.map((session) => (
+                  <button 
+                    key={session.id} 
+                    onClick={() => setActiveSessionId?.(session.id)} 
+                    className={cn(
+                      "w-full text-left px-2 py-1.5 rounded-lg text-xs hover:bg-accent transition-colors truncate", 
+                      session.id === activeSessionId ? "bg-accent font-semibold text-foreground" : "text-muted-foreground"
+                    )}
+                  >
+                    {session.title}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </nav>
+      <div className="p-2 border-t border-border">
+        <button onClick={() => setScreen("profile")} title={collapsed ? "Profile" : undefined}
+          className={cn("w-full flex items-center gap-3 px-2.5 py-2.5 rounded-xl transition-colors group",
+            collapsed ? "justify-center" : "",
+            screen === "profile" ? "bg-primary text-primary-foreground" : "hover:bg-accent")}>
+          <div className={cn("w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0",
+            screen === "profile" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/15 text-primary")}>
+            {initials}
+          </div>
+          {!collapsed && (
+            <div className="flex-1 min-w-0 text-left">
+              <p className={cn("text-sm font-semibold truncate", screen === "profile" ? "text-primary-foreground" : "text-foreground")}>{fullName}</p>
+              <p className={cn("text-xs", screen === "profile" ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                {isExpert ? "Seeker · Expert" : "Business Seeker"}
+              </p>
+            </div>
+          )}
+          {!collapsed && (
+            <User className={cn("w-3.5 h-3.5 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity",
+              screen === "profile" ? "text-primary-foreground" : "text-muted-foreground")} />
+          )}
+        </button>
+      </div>
+    </aside>
+  );
+}

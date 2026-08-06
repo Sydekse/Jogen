@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { EmptyState } from '@/src/components/expert/EmptyState';
-import { ExpertCard } from '@/src/components/expert/ExpertCard';
+import { EmptyState } from '@/src/features/experts/components/EmptyState';
+import { ExpertCard } from '@/src/features/experts/components/ExpertCard';
 import { expertService } from '@/src/services/expertService';
 import { ExpertListItem } from '@/src/types/expert';
 

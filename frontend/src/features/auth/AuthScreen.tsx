@@ -22,7 +22,6 @@ function formatTime(s: number) {
 
 // Named export with the onLoginSuccess prop
 export function AuthScreen({ onLoginSuccess }: { onLoginSuccess: () => void }) {
-  const [errorMsg, setErrorMsg] = useState("");
   const [lang, setLang] = useState<"en" | "am">("en");
   const [darkMode, setDarkMode] = useState(false);
   const [step, setStep] = useState<"phone" | "otp">("phone");
@@ -42,7 +41,7 @@ export function AuthScreen({ onLoginSuccess }: { onLoginSuccess: () => void }) {
   }, [step]);
 
   const onPhoneSubmit = async (data: AuthFormData) => {
-    setErrorMsg("");
+    // setErrorMsg("");
     const result = await sendOtpApi(data.phoneNumber);
 
     if (result.success) {
@@ -71,7 +70,11 @@ export function AuthScreen({ onLoginSuccess }: { onLoginSuccess: () => void }) {
       const result = await verifyOtpApi(submittedPhone, fullOtpCode);
 
       if (result.success) {
-        console.log("Authentication successful! Token received:", result.data.token);
+        console.log("Authentication successful! Token received:", result.data.access);
+        localStorage.setItem("access_token", result.data.access);
+        if (result.data.refresh) {
+            localStorage.setItem("refresh_token", result.data.refresh);
+        }
         // Trigger the transition to the chat interface!
         onLoginSuccess();
       } else {
