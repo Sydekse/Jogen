@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import RAGChatView, ChatHistoryView
+from .views import ChatHistoryView, RAGChatView
 
 urlpatterns = [
     path('', RAGChatView.as_view(), name='rag_chat'),

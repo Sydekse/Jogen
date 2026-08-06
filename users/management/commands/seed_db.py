@@ -1,8 +1,9 @@
-import random
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from users.models import User
+
 from experts.models import Expert
+from users.models import User
+
 
 class Command(BaseCommand):
     help = 'Seeds the database with test users and experts'
@@ -14,7 +15,7 @@ class Command(BaseCommand):
             with transaction.atomic():
                 # Clear existing for fresh seed if desired
                 # User.objects.all().delete()  # Be careful, this deletes everything!
-                
+
                 # Create a main test user (Amanuel Bekele)
                 main_user, created = User.objects.get_or_create(
                     phone_number="+251912345678",
@@ -26,7 +27,9 @@ class Command(BaseCommand):
                 if created:
                     main_user.set_password("password123")
                     main_user.save()
-                    self.stdout.write(self.style.SUCCESS(f"Created main user: {main_user.full_name}"))
+                    self.stdout.write(
+                        self.style.SUCCESS(f"Created main user: {main_user.full_name}")
+                    )
 
                 # Create Experts
                 experts_data = [
@@ -34,7 +37,10 @@ class Command(BaseCommand):
                         "phone": "+251900000001",
                         "name": "Elias Tadesse",
                         "title": "Senior Tax Consultant",
-                        "bio": "Over 10 years of experience in Ethiopian corporate tax and VAT regulations.",
+                        "bio": (
+                            "Over 10 years of experience in Ethiopian corporate tax "
+                            "and VAT regulations."
+                        ),
                         "tags": ["tax", "commercial_code"],
                         "rate": 1500.00,
                         "status": "verified"
@@ -43,7 +49,10 @@ class Command(BaseCommand):
                         "phone": "+251900000002",
                         "name": "Saba Alemayehu",
                         "title": "Startup Legal Advisor",
-                        "bio": "Specializing in tech startup incorporations, IP registration, and funding laws.",
+                        "bio": (
+                            "Specializing in tech startup incorporations, IP registration, "
+                            "and funding laws."
+                        ),
                         "tags": ["startup_law", "ip_law"],
                         "rate": 1200.50,
                         "status": "verified"
@@ -52,7 +61,10 @@ class Command(BaseCommand):
                         "phone": "+251900000003",
                         "name": "Dawit Mekonnen",
                         "title": "FX & Investment Specialist",
-                        "bio": "Former NBE advisor helping foreign investors navigate FX laws and repatriation.",
+                        "bio": (
+                            "Former NBE advisor helping foreign investors navigate FX laws "
+                            "and repatriation."
+                        ),
                         "tags": ["fx_law", "startup_law"],
                         "rate": 2500.00,
                         "status": "verified"
@@ -61,7 +73,10 @@ class Command(BaseCommand):
                         "phone": "+251900000004",
                         "name": "Tigist Haile",
                         "title": "Commercial Dispute Lawyer",
-                        "bio": "Expert in commercial arbitration and contract disputes under Ethiopian law.",
+                        "bio": (
+                            "Expert in commercial arbitration and contract disputes under "
+                            "Ethiopian law."
+                        ),
                         "tags": ["commercial_code"],
                         "rate": 1800.00,
                         "status": "verified"
@@ -70,7 +85,10 @@ class Command(BaseCommand):
                         "phone": "+251900000005",
                         "name": "Biniam Worku",
                         "title": "Intellectual Property Attorney",
-                        "bio": "Handling trademarks, patents, and copyright infringement cases in Ethiopia.",
+                        "bio": (
+                            "Handling trademarks, patents, and copyright infringement cases "
+                            "in Ethiopia."
+                        ),
                         "tags": ["ip_law"],
                         "rate": 1000.00,
                         "status": "pending"
@@ -85,8 +103,8 @@ class Command(BaseCommand):
                     if user_created:
                         user.set_password("expertpass123")
                         user.save()
-                    
-                    expert, exp_created = Expert.objects.get_or_create(
+
+                    _, exp_created = Expert.objects.get_or_create(
                         user=user,
                         defaults={
                             "title": data["title"],
@@ -99,7 +117,9 @@ class Command(BaseCommand):
                         }
                     )
                     if exp_created:
-                        self.stdout.write(self.style.SUCCESS(f"Created expert: {user.full_name}"))
+                        self.stdout.write(
+                            self.style.SUCCESS(f"Created expert: {user.full_name}")
+                        )
 
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"Error seeding database: {e}"))

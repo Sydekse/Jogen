@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
+import csv
 import os
 import re
 import time
-import csv
-from urllib.parse import urlparse, parse_qs
-from bs4 import BeautifulSoup
+from urllib.parse import parse_qs, urlparse
+
 import undetected_chromedriver as uc
+from bs4 import BeautifulSoup
 from curl_cffi import requests
 
 BASE_URL = "https://justice.gov.et/en/laws/proclamations/"
 TOTAL_PAGES = 68
 OUTPUT_DIR = "proclamations"
 DELAY_SECONDS = 1.0
+
 
 def find_download_links(soup):
     results = []
@@ -36,7 +38,11 @@ def find_download_links(soup):
         # 2. Extract the Metadata/Status
         status_tags = []
         # JetEngine usually puts categories/statuses in these specific classes
-        meta_elements = card.select('.jet-listing-dynamic-field__content, .jet-listing-dynamic-terms__link, .elementor-post-info__terms-list-item')
+        meta_elements = card.select(
+            ".jet-listing-dynamic-field__content, "
+            ".jet-listing-dynamic-terms__link, "
+            ".elementor-post-info__terms-list-item"
+        )
 
         for el in meta_elements:
             text = el.get_text(strip=True)
@@ -61,6 +67,7 @@ def find_download_links(soup):
 
     return results
 
+
 def safe_filename(title, url):
     qs = parse_qs(urlparse(url).query)
     doc_hash = qs.get("jet_download", ["unknown"])[0][:16]
@@ -69,6 +76,7 @@ def safe_filename(title, url):
         slug = slug[:80]
         return f"{slug}-{doc_hash}.pdf"
     return f"{doc_hash}.pdf"
+
 
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -159,7 +167,7 @@ def main():
 
                     # Successfully downloaded! Log it to the CSV spreadsheet.
                     csv_writer.writerow([filename, title, status, pdf_url])
-                    csv_file.flush() # Ensure it saves to disk immediately
+                    csv_file.flush()  # Ensure it saves to disk immediately
 
                 else:
                     print(f"  [error] HTTP {pdf_resp.status_code}")
@@ -170,6 +178,7 @@ def main():
 
     # Cleanup
     csv_file.close()
+
 
 if __name__ == "__main__":
     main()

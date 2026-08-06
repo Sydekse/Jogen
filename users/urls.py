@@ -1,7 +1,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenBlacklistView, TokenRefreshView
 
-from .views import RequestOTPView, VerifyOTPView, UserProfileView
+from .views import RequestOTPView, UserProfileView, VerifyOTPView
 
 urlpatterns = [
     # Notice we don't repeat '/api/v1/auth/' here, just the final part of the path
