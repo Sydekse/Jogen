@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.urls import reverse
 from pgvector.django import CosineDistance
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -45,7 +46,7 @@ def test_vector_store_similarity_search():
 class TestRAGChatAPI:
     def setup_method(self):
         self.client = APIClient()
-        self.url = "/api/ai/chat/"
+        self.url = reverse("rag_chat")
 
     @patch("ai_service.services.genai.Client")
     def test_rag_chat_endpoint_structure(self, mock_genai_client):
