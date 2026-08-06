@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .serializers import RequestOTPSerializer, VerifyOTPSerializer
@@ -75,3 +76,32 @@ class VerifyOTPView(APIView):
             {"is_new_user": created, "access": str(refresh.access_token), "refresh": str(refresh)},
             status=status.HTTP_200_OK,
         )
+
+
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        data = {
+            "id": str(user.id),
+            "phone_number": user.phone_number,
+            "full_name": user.full_name,
+            "preferred_language": user.preferred_language,
+            "is_expert": False,
+        }
+        
+        # Check if user has an expert profile
+        if hasattr(user, 'expert_profile'):
+            expert = user.expert_profile
+            data["is_expert"] = True
+            data["expert_data"] = {
+                "id": str(expert.id),
+                "title": expert.title,
+                "bio": expert.bio,
+                "rate": str(expert.rate_per_session),
+                "verification_status": expert.verification_status,
+                "specialty_tags": expert.specialty_tags,
+            }
+            
+        return Response(data, status=status.HTTP_200_OK)

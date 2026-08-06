@@ -45,3 +45,4 @@ frontend/next-env.d.ts
 downloaded_laws/
 temp_docs/
 *.pdf
+proclamations/
