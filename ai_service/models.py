@@ -20,7 +20,7 @@ class LegalDocumentEmbedding(models.Model):
     category = models.CharField(max_length=100, help_text="e.g. tax, startup_law, fx_law")
 
     # OpenAI text-embedding-3-small generates 1536-dimensional vectors
-    embedding = VectorField(dimensions=1536)
+    embedding = VectorField(dimensions=768)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
