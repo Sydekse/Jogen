@@ -2,6 +2,8 @@
 
 import React, { use, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { BookingCheckoutModal } from '@/src/components/booking/BookingCheckoutModal';
 import { expertService } from '@/src/services/expertService';
 import { ExpertDetail } from '@/src/types/expert';
 
@@ -21,15 +23,19 @@ const daysOfWeek = [
 
 export default function ExpertDetailPage({ params }: PageProps) {
   const { id } = use(params);
+  const router = useRouter();
 
   const [expert, setExpert] = useState<ExpertDetail | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Selected Booking Slot State
+  // Selected Day & Slot State
   const [selectedDay, setSelectedDay] = useState<string>('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
-  
+
+  // Modal Open State
+  const [showCheckoutModal, setShowCheckoutModal] = useState<boolean>(false);
+
   useEffect(() => {
     async function loadExpert() {
       try {
@@ -45,7 +51,9 @@ export default function ExpertDetailPage({ params }: PageProps) {
           setSelectedDay(availableDay.key);
         }
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Unable to load expert profile.');
+        setError(
+          err instanceof Error ? err.message : 'Unable to load expert profile.'
+        );
       } finally {
         setLoading(false);
       }
@@ -71,7 +79,9 @@ export default function ExpertDetailPage({ params }: PageProps) {
       <div className="min-h-screen bg-gray-50 py-12 px-4 flex justify-center items-center">
         <div className="text-center p-8 bg-white rounded-xl border border-gray-200 shadow-sm max-w-md">
           <h2 className="text-xl font-bold text-gray-900 mb-2">Expert Not Found</h2>
-          <p className="text-sm text-gray-500 mb-6">{error || 'This profile is unavailable.'}</p>
+          <p className="text-sm text-gray-500 mb-6">
+            {error || 'This profile is unavailable.'}
+          </p>
           <Link
             href="/experts"
             className="px-4 py-2 bg-purple-900 text-white rounded-lg text-sm font-semibold hover:bg-purple-800 transition-colors"
@@ -88,7 +98,6 @@ export default function ExpertDetailPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto space-y-8">
-        {/* Navigation Breadcrumb */}
         <div>
           <Link
             href="/experts"
@@ -98,7 +107,7 @@ export default function ExpertDetailPage({ params }: PageProps) {
           </Link>
         </div>
 
-        {/* Header Profile Section */}
+        {/* Header Profile */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 md:p-8 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
             <div className="flex items-center gap-3">
@@ -109,7 +118,9 @@ export default function ExpertDetailPage({ params }: PageProps) {
                 Verified
               </span>
             </div>
-            <p className="text-base font-medium text-purple-900 mt-1">{expert.title}</p>
+            <p className="text-base font-medium text-purple-900 mt-1">
+              {expert.title}
+            </p>
 
             <div className="flex flex-wrap gap-2 mt-4">
               {expert.specialty_tags.map((tag) => (
@@ -130,13 +141,14 @@ export default function ExpertDetailPage({ params }: PageProps) {
             <span className="text-2xl font-extrabold text-purple-950">
               {parseFloat(expert.rate_per_session).toLocaleString()} ETB
             </span>
-            <span className="text-xs text-gray-500 block mt-0.5">per 30-min session</span>
+            <span className="text-xs text-gray-500 block mt-0.5">
+              per 30-min session
+            </span>
           </div>
         </div>
 
-        {/* Bio & Availability Picker Grid */}
+        {/* Bio & Availability Picker */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Biography & Experience Column */}
           <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-4">
             <h2 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3">
               About & Experience
@@ -146,7 +158,7 @@ export default function ExpertDetailPage({ params }: PageProps) {
             </p>
           </div>
 
-          {/* Schedule Calendar Picker Column */}
+          {/* Schedule Column */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-6">
             <h2 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3">
               Select Advisory Slot
@@ -186,7 +198,8 @@ export default function ExpertDetailPage({ params }: PageProps) {
             {/* Time Slots */}
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-2">
-                Available Time Slots ({daysOfWeek.find((d) => d.key === selectedDay)?.label})
+                Available Time Slots (
+                {daysOfWeek.find((d) => d.key === selectedDay)?.label})
               </label>
               {activeSlots.length === 0 ? (
                 <p className="text-xs text-gray-400 italic py-4 text-center">
@@ -211,20 +224,37 @@ export default function ExpertDetailPage({ params }: PageProps) {
               )}
             </div>
 
-            {/* Booking CTA */}
+            {/* Reserve Slot Button */}
             <button
               disabled={!selectedTimeSlot}
+              onClick={() => setShowCheckoutModal(true)}
               className={`w-full py-3 rounded-lg text-sm font-bold text-white transition-colors shadow-sm ${
                 selectedTimeSlot
                   ? 'bg-purple-900 hover:bg-purple-800 cursor-pointer'
                   : 'bg-gray-300 cursor-not-allowed'
               }`}
             >
-              {selectedTimeSlot ? `Confirm & Reserve Slot (${selectedTimeSlot})` : 'Select a Slot'}
+              {selectedTimeSlot
+                ? `Confirm & Reserve Slot (${selectedTimeSlot})`
+                : 'Select a Slot'}
             </button>
           </div>
         </div>
       </div>
+
+      {/* Checkout Modal */}
+      {showCheckoutModal && (
+        <BookingCheckoutModal
+          expert={expert}
+          selectedDay={selectedDay}
+          selectedSlot={selectedTimeSlot}
+          onClose={() => setShowCheckoutModal(false)}
+          onSuccess={() => {
+            setShowCheckoutModal(false);
+            router.push('/consultations');
+          }}
+        />
+      )}
     </main>
   );
 }
