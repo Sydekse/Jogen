@@ -40,6 +40,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     phone_number = models.CharField(max_length=20, unique=True, db_index=True)
     full_name = models.CharField(max_length=255, blank=True)
+    email = models.EmailField(max_length=254, unique=True, null=True, blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
     preferred_language = models.CharField(max_length=5, choices=LANGUAGE_CHOICES, default="am")
     created_at = models.DateTimeField(default=timezone.now)
     deleted_at = models.DateTimeField(null=True, blank=True)

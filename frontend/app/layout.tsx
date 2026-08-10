@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
+import { UserProvider } from "@/src/context/UserContext";
+import { ChatProvider } from "@/src/context/ChatContext";
 
 // 1. Initialize the font
 const plusJakarta = Plus_Jakarta_Sans({
@@ -23,10 +25,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* 2. Apply the font class and your Tailwind theme classes */}
       <body className={`${plusJakarta.className} antialiased`}>
-        {children}
-        <Toaster position="bottom-right" />
+        <UserProvider>
+          <ChatProvider>
+            {children}
+            <Toaster position="bottom-right" />
+          </ChatProvider>
+        </UserProvider>
       </body>
     </html>
   );

@@ -57,7 +57,7 @@ export const ExpertCard: React.FC<ExpertCardProps> = ({ expert, onTagClick, onVi
               key={tag}
               onClick={(e) => {
                 e.preventDefault();
-                onTagClick(tag);
+                onTagClick?.(tag);
               }}
               className="text-[10px] px-2 py-1 rounded-full bg-muted text-muted-foreground font-medium hover:bg-primary/10 hover:text-primary transition-colors"
             >
