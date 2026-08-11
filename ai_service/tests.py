@@ -1,3 +1,4 @@
+import uuid
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -46,6 +47,8 @@ def test_vector_store_similarity_search():
 class TestRAGChatAPI:
     def setup_method(self):
         self.client = APIClient()
+        self.user = User.objects.create_user(phone_number="+251911223344")
+        self.client.force_authenticate(user=self.user)
         self.url = reverse("rag_chat")
 
     @patch("ai_service.services.genai.Client")
@@ -70,7 +73,8 @@ class TestRAGChatAPI:
 
         payload = {
             "query": "What are the rules regarding SaaS providers?",
-            "language": "en"
+            "language": "en",
+            "session_id": str(uuid.uuid4()),
         }
 
         response = self.client.post(self.url, payload, format="json")
