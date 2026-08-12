@@ -1,10 +1,10 @@
 import React from "react";
 import { Globe, Bell, Sun, Moon } from "lucide-react";
+import { useUser } from "@/src/context/UserContext";
 
-export function TopBar({ darkMode, setDarkMode, lang, setLang }: {
-  darkMode: boolean; setDarkMode: (v: boolean) => void;
-  lang: "en" | "am"; setLang: (l: "en" | "am") => void;
-}) {
+export function TopBar() {
+  const { darkMode, setDarkMode, lang, setLang } = useUser();
+  
   return (
     <header className="h-14 border-b border-border bg-card/60 backdrop-blur-sm flex items-center justify-end px-5 gap-2.5 shrink-0">
       <button onClick={() => setLang(lang === "en" ? "am" : "en")} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border border-border hover:bg-accent transition-colors text-foreground">

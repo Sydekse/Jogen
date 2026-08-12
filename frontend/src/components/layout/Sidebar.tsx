@@ -1,42 +1,48 @@
+"use client";
+
 import React, { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { MessageSquare, Users, BarChart3, Shield, ChevronLeft, ChevronRight, User, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { JogenLogo } from "@/src/components/ui/jogenLogo";
-import { ChatSession } from "@/src/features/chat/ChatInterface";
+import { useUser } from "@/src/context/UserContext";
+import { useChat } from "@/src/context/ChatContext";
 
 const NAV_ITEMS = [
-  { id: "experts", label: "Find Experts", icon: Users },
-  { id: "dashboard", label: "Expert Dashboard", icon: BarChart3 },
-  { id: "admin", label: "Admin Console", icon: Shield },
-  { id: "ai", label: "AI Assistant", icon: MessageSquare },
+  { id: "experts", label: "Find Experts", icon: Users, href: "/experts" },
+  { id: "dashboard", label: "Expert Dashboard", icon: BarChart3, href: "/dashboard" },
+  { id: "admin", label: "Admin Console", icon: Shield, href: "/admin" },
+  { id: "ai", label: "AI Assistant", icon: MessageSquare, href: "/" },
 ];
 
-export function Sidebar({ 
-  screen, 
-  setScreen, 
-  isExpert, 
-  collapsed, 
+export function Sidebar({
+  collapsed,
   onToggle,
-  sessions,
-  activeSessionId,
-  setActiveSessionId,
-  onNewChat,
-  userProfile
 }: {
-  screen: string; setScreen: (s: string) => void; isExpert: boolean;
   collapsed: boolean; onToggle: () => void;
-  sessions?: ChatSession[];
-  activeSessionId?: string;
-  setActiveSessionId?: (id: string) => void;
-  onNewChat?: () => void;
-  userProfile?: Record<string, unknown> | null;
 }) {
-  const activeId = screen === "expert-detail" ? "experts" : screen === "profile" ? "profile" : screen;
+  const pathname = usePathname();
+  const { userProfile, isExpert } = useUser();
+  const { sessions, activeSessionId, setActiveSessionId, handleNewChat } = useChat();
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
 
-  const fullName = (userProfile?.full_name as string) || "Amanuel Bekele";
-  const initials = fullName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
-  
+  // Determine active id based on pathname
+  let activeId = "";
+  if (pathname === "/") activeId = "ai";
+  else if (pathname.startsWith("/experts")) activeId = "experts";
+  else if (pathname.startsWith("/dashboard")) activeId = "dashboard";
+  else if (pathname.startsWith("/admin")) activeId = "admin";
+  else if (pathname.startsWith("/profile")) activeId = "profile";
+
+  const fullName = (userProfile?.full_name as string) || "";
+  const profilePictureUrl = userProfile?.profile_picture as string | undefined;
+
+  // Safely generate initials, defaulting to "U" (for User) if the name is blank
+  const initials = fullName.trim()
+    ? fullName.trim().split(/\s+/).map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
+    : "U";
+
   return (
     <aside className={cn(
       "border-r border-border bg-card flex flex-col shrink-0 transition-all duration-200 overflow-hidden",
@@ -67,78 +73,95 @@ export function Sidebar({
         </button>
       )}
       <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto flex flex-col">
-        {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
-          <div key={id}>
-            <button onClick={() => setScreen(id)} title={collapsed ? label : undefined}
-              className={cn("w-full flex items-center gap-3 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-colors",
-                collapsed ? "justify-center" : "",
-                activeId === id ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-accent")}>
-              <Icon className="w-4 h-4 shrink-0" />
-              {!collapsed && (
-                <div className="flex items-center flex-1 min-w-0 justify-between">
-                  <span>{label}</span>
-                  {id === "dashboard" && isExpert && (
-                    <span className="ml-auto text-xs font-bold px-1.5 py-0.5 rounded-full bg-primary-foreground/20">Expert</span>
-                  )}
-                  {id === "ai" && activeId === "ai" && (
-                    <div 
-                      className="p-0.5 rounded hover:bg-primary-foreground/20 ml-1" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsHistoryExpanded(!isHistoryExpanded);
-                      }}
+        {NAV_ITEMS.map(({ id, label, icon: Icon, href }) => {
+          // Check if this item is active
+          const isActive = activeId === id;
+          return (
+            <div key={id}>
+              <Link href={href} title={collapsed ? label : undefined}
+                className={cn("w-full flex items-center gap-3 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                  collapsed ? "justify-center" : "",
+                  isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-accent")}>
+                <Icon className="w-4 h-4 shrink-0" />
+                {!collapsed && (
+                  <div className="flex items-center flex-1 min-w-0 justify-between">
+                    <span>{label}</span>
+                    {id === "dashboard" && isExpert && (
+                      <span className="ml-auto text-xs font-bold px-1.5 py-0.5 rounded-full bg-primary-foreground/20">Expert</span>
+                    )}
+                    {id === "ai" && isActive && (
+                      <div
+                        className="p-0.5 rounded hover:bg-primary-foreground/20 ml-1"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setIsHistoryExpanded(!isHistoryExpanded);
+                        }}
+                      >
+                        {isHistoryExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Link>
+              {/* AI History Dropdown logic */}
+              {id === "ai" && isActive && !collapsed && isHistoryExpanded && sessions && (
+                <div className="pl-9 pr-2 py-2 space-y-1">
+                  <button onClick={handleNewChat} className="w-full flex items-center gap-2 py-1.5 px-2 rounded-lg text-xs font-semibold text-primary hover:bg-primary/10 transition-colors">
+                    <Plus className="w-3 h-3" /> New Chat
+                  </button>
+                  {sessions.map((session) => (
+                    <button
+                      key={session.id}
+                      onClick={() => setActiveSessionId(session.id)}
+                      className={cn(
+                        "w-full text-left px-2 py-1.5 rounded-lg text-xs hover:bg-accent transition-colors truncate",
+                        session.id === activeSessionId ? "bg-accent font-semibold text-foreground" : "text-muted-foreground"
+                      )}
                     >
-                      {isHistoryExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                    </div>
-                  )}
+                      {session.title}
+                    </button>
+                  ))}
                 </div>
               )}
-            </button>
-            {/* AI History Dropdown logic */}
-            {id === "ai" && activeId === "ai" && !collapsed && isHistoryExpanded && sessions && (
-              <div className="pl-9 pr-2 py-2 space-y-1">
-                <button onClick={onNewChat} className="w-full flex items-center gap-2 py-1.5 px-2 rounded-lg text-xs font-semibold text-primary hover:bg-primary/10 transition-colors">
-                  <Plus className="w-3 h-3" /> New Chat
-                </button>
-                {sessions.map((session) => (
-                  <button 
-                    key={session.id} 
-                    onClick={() => setActiveSessionId?.(session.id)} 
-                    className={cn(
-                      "w-full text-left px-2 py-1.5 rounded-lg text-xs hover:bg-accent transition-colors truncate", 
-                      session.id === activeSessionId ? "bg-accent font-semibold text-foreground" : "text-muted-foreground"
-                    )}
-                  >
-                    {session.title}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </nav>
       <div className="p-2 border-t border-border">
-        <button onClick={() => setScreen("profile")} title={collapsed ? "Profile" : undefined}
+        <Link href="/profile" title={collapsed ? "Profile" : undefined}
           className={cn("w-full flex items-center gap-3 px-2.5 py-2.5 rounded-xl transition-colors group",
             collapsed ? "justify-center" : "",
-            screen === "profile" ? "bg-primary text-primary-foreground" : "hover:bg-accent")}>
-          <div className={cn("w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0",
-            screen === "profile" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/15 text-primary")}>
-            {initials}
-          </div>
+            activeId === "profile" ? "bg-primary text-primary-foreground" : "hover:bg-accent")}>
+
+          {/* Conditional rendering for Profile Picture vs Initials */}
+          {profilePictureUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={profilePictureUrl}
+              alt={fullName || "Profile"}
+              className="w-8 h-8 rounded-full object-cover shrink-0"
+            />
+          ) : (
+            <div className={cn("w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0",
+              activeId === "profile" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/15 text-primary")}>
+              {initials}
+            </div>
+          )}
+
           {!collapsed && (
             <div className="flex-1 min-w-0 text-left">
-              <p className={cn("text-sm font-semibold truncate", screen === "profile" ? "text-primary-foreground" : "text-foreground")}>{fullName}</p>
-              <p className={cn("text-xs", screen === "profile" ? "text-primary-foreground/70" : "text-muted-foreground")}>
+              <p className={cn("text-sm font-semibold truncate", activeId === "profile" ? "text-primary-foreground" : "text-foreground")}>{fullName}</p>
+              <p className={cn("text-xs", activeId === "profile" ? "text-primary-foreground/70" : "text-muted-foreground")}>
                 {isExpert ? "Seeker · Expert" : "Business Seeker"}
               </p>
             </div>
           )}
           {!collapsed && (
             <User className={cn("w-3.5 h-3.5 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity",
-              screen === "profile" ? "text-primary-foreground" : "text-muted-foreground")} />
+              activeId === "profile" ? "text-primary-foreground" : "text-muted-foreground")} />
           )}
-        </button>
+        </Link>
       </div>
     </aside>
   );

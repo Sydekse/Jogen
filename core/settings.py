@@ -156,3 +156,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Temporarily allow everything to test if CORS is the blocker
 CORS_ALLOW_ALL_ORIGINS = True
+
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

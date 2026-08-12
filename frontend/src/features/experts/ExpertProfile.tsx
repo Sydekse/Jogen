@@ -1,7 +1,10 @@
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, Star, Clock, Shield, BadgeCheck } from 'lucide-react';
 
-export function ExpertProfile({ expertId, onBack }: { expertId: string; onBack: () => void }) {
+export function ExpertProfile({ expertId }: { expertId: string }) {
+  const router = useRouter();
+  
   // In a real implementation, we would fetch the specific expert by ID
   // For now, we'll mock the data based on the ID for presentation
   const expert = {
@@ -19,7 +22,7 @@ export function ExpertProfile({ expertId, onBack }: { expertId: string; onBack: 
   return (
     <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-8">
       <button 
-        onClick={onBack}
+        onClick={() => router.back()}
         className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="w-4 h-4" /> Back to Directory
