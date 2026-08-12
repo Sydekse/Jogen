@@ -59,11 +59,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           setActiveSessionId(history[0].id);
         } else {
           // If no history, we create a new chat via effect after checking
+          const newId = crypto.randomUUID();
           setSessions([{
-            id: crypto.randomUUID(),
+            id: newId,
             title: "New Conversation",
             messages: [{ id: crypto.randomUUID(), sender: "ai", text: "Hello! Starting a fresh chat. How can I help?" }]
           }]);
+          setActiveSessionId(newId);
         }
       } catch (e) {
         console.error("Failed to load chat data:", e);

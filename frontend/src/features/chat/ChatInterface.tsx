@@ -53,7 +53,7 @@ export default function ChatInterface({
     const userMsg: Message = { id: Date.now().toString(), sender: "user", text: currentText };
 
     setSessions((prev) => prev.map((session) => {
-      if (session.id === activeSessionId) {
+      if (session.id === activeSession.id) {
         const isFirstUserMessage = session.messages.length <= 1;
         return {
           ...session,
@@ -75,7 +75,7 @@ export default function ChatInterface({
           "Content-Type": "application/json",
           "Authorization": token ? `Bearer ${token}` : ""
         },
-        body: JSON.stringify({ query: currentText, session_id: activeSessionId }),
+        body: JSON.stringify({ query: currentText, session_id: activeSession.id }),
       });
 
       if (!response.ok) throw new Error("Failed to communicate with backend");
@@ -88,7 +88,7 @@ export default function ChatInterface({
       };
 
       setSessions((prev) => prev.map((session) =>
-        session.id === activeSessionId
+        session.id === activeSession.id
           ? { ...session, messages: [...session.messages, aiReply] }
           : session
       ));
@@ -100,7 +100,7 @@ export default function ChatInterface({
         text: "Error connecting to the AI server. Please make sure the backend is running.",
       };
       setSessions((prev) => prev.map((session) =>
-        session.id === activeSessionId
+        session.id === activeSession.id
           ? { ...session, messages: [...session.messages, errorReply] }
           : session
       ));
