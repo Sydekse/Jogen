@@ -120,12 +120,9 @@ def main():
     driver.quit()
 
     session = requests.Session(impersonate="chrome")
-    session.headers.update({
-        "User-Agent": user_agent,
-        "Referer": "https://justice.gov.et/en/"
-    })
+    session.headers.update({"User-Agent": user_agent, "Referer": "https://justice.gov.et/en/"})
     for cookie in selenium_cookies:
-        session.cookies.set(cookie['name'], cookie['value'], domain=cookie['domain'])
+        session.cookies.set(cookie["name"], cookie["value"], domain=cookie["domain"])
 
     for page_num in range(47, TOTAL_PAGES + 1):
         url = f"{BASE_URL}?jsf=jet-engine&pagenum={page_num}" if page_num > 1 else BASE_URL

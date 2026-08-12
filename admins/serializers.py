@@ -43,7 +43,5 @@ class AdminExpertVerificationSerializer(serializers.ModelSerializer):
     def validate_verification_status(self, value):
         allowed_statuses = ["verified", "rejected", "pending", "unverified"]
         if value not in allowed_statuses:
-            raise serializers.ValidationError(
-                f"Invalid status. Must be one of: {allowed_statuses}"
-            )
+            raise serializers.ValidationError(f"Invalid status. Must be one of: {allowed_statuses}")
         return value

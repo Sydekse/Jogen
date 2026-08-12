@@ -28,22 +28,21 @@ class RAGPipelineService:
             contents=text,
             # We force it to output 768 to match the PostgreSQL db
             config=genai.types.EmbedContentConfig(
-                task_type="RETRIEVAL_QUERY",
-                output_dimensionality=768
-            )
+                task_type="RETRIEVAL_QUERY", output_dimensionality=768
+            ),
         )
         return result.embeddings[0].values
 
     def retrieve_context(
-        self, query_vector: list[float], top_k: int = 7,language: str ="en"
+        self, query_vector: list[float], top_k: int = 7, language: str = "en"
     ) -> list[LegalDocumentEmbedding]:
         lang_tag = "(English)" if language == "en" else "(Amharic)"
         """Perform vector cosine distance search in pgvector database."""
-        return LegalDocumentEmbedding.objects.filter(
-            doc_reference__icontains=lang_tag
-        ).annotate(
-            distance=CosineDistance("embedding", query_vector)
-        ).order_by("distance")[:top_k]
+        return (
+            LegalDocumentEmbedding.objects.filter(doc_reference__icontains=lang_tag)
+            .annotate(distance=CosineDistance("embedding", query_vector))
+            .order_by("distance")[:top_k]
+        )
 
     def execute_rag_query(self, user_query: str, target_language: str = "en") -> dict:
         """
@@ -70,9 +69,6 @@ class RAGPipelineService:
         )
 
         # 4. Call Google Gemini Interactions API (the new way to generate content)
-        interaction = self.client.interactions.create(
-            model=self.llm_model,
-            input=prompt
-        )
+        interaction = self.client.interactions.create(model=self.llm_model, input=prompt)
 
         return {"answer": interaction.output_text, "sources": sources, "context_used": context_str}

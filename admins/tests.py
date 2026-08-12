@@ -26,7 +26,7 @@ def test_non_staff_user_forbidden_from_admin_endpoints():
 def test_compliance_admin_can_list_and_verify_expert():
     admin = User.objects.create_user(phone_number="+251911000000", is_staff=True)
     expert_user = User.objects.create_user(phone_number="+251911445566")
-    
+
     expert = Expert.objects.create(
         user=expert_user,
         title="Dr. Bekele Legal Advisor",
@@ -62,7 +62,7 @@ def test_compliance_admin_can_list_and_verify_expert():
 def test_admin_s3_retention_policy_configuration(mock_boto_client):
     mock_s3 = mock_boto_client.return_value
     retention_service = AdminRetentionService()
-    
+
     success = retention_service.apply_s3_verification_docs_lifecycle_rule(days=30)
     assert success is True
     mock_s3.put_bucket_lifecycle_configuration.assert_called_once()
