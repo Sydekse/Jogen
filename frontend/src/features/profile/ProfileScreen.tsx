@@ -1,6 +1,5 @@
 import React, { useState, useRef } from "react";
 import { User, Briefcase, FileUp, Save, LogOut, Camera } from "lucide-react";
-import Image from "next/image";
 
 export function ProfileScreen({ isExpert, setIsExpert, onLogout, userProfile, onProfileUpdate }: {
   isExpert: boolean;

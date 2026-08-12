@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from rest_framework import status
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
@@ -86,7 +86,9 @@ class UserProfileView(APIView):
         user = request.user
 
         # Build the absolute URL for the image so React can render it directly
-        profile_picture_url = request.build_absolute_uri(user.profile_picture.url) if user.profile_picture else None
+        profile_picture_url = (
+            request.build_absolute_uri(user.profile_picture.url) if user.profile_picture else None
+        )
 
         data = {
             "id": str(user.id),

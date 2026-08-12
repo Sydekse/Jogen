@@ -1,16 +1,21 @@
 import os
-import time
 import re
+import time
+
 import fitz  # PyMuPDF
-from django.core.management.base import BaseCommand
 from django.conf import settings
+from django.core.management.base import BaseCommand
 from google import genai
 from google.genai import types
 
 from ai_service.models import LegalDocumentEmbedding
 
+
 class Command(BaseCommand):
-    help = "Batch parses a folder of 2-column bilingual legal PDFs, chunks by Article, and embeds into pgvector."
+    help = (
+        "Batch parses a folder of 2-column bilingual legal PDFs, "
+        "chunks by Article, and embeds into pgvector."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -31,7 +36,10 @@ class Command(BaseCommand):
         # 1. "Article", "ARTICLE", or "አንቀጽ" followed by digits or Ethiopic numerals
         # 2. English numbered lists (e.g., "1. ")
         # 3. Amharic numbered lists (e.g., "፩ ")
-        pattern = r'\n(?=(?:Article|ARTICLE|አንቀጽ)\s*(?:\d+|[፩-፼]+)|\d+\.\s+[A-Z]|[፩-፼]+\s+[\u1200-\u137F])'
+        pattern = (
+            r'\n(?=(?:Article|ARTICLE|አንቀጽ)\s*(?:\d+|[፩-፼]+)|'
+            r'\d+\.\s+[A-Z]|[፩-፼]+\s+[\u1200-\u137F])'
+        )
 
         raw_chunks = re.split(pattern, text)
         final_chunks = []
@@ -109,7 +117,9 @@ class Command(BaseCommand):
 
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
-            self.stderr.write(self.style.ERROR("GEMINI_API_KEY missing from environment variables."))
+            self.stderr.write(
+                self.style.ERROR("GEMINI_API_KEY missing from environment variables.")
+            )
             return
 
         # Initialize the modern GenAI Client
@@ -117,7 +127,9 @@ class Command(BaseCommand):
         # The correct, active Gemini embedding model
         embedding_model = "gemini-embedding-001"
 
-        self.stdout.write(self.style.SUCCESS(f"Found {len(pdf_files)} PDF(s). Starting batch ingestion..."))
+        self.stdout.write(
+            self.style.SUCCESS(f"Found {len(pdf_files)} PDF(s). Starting batch ingestion...")
+        )
 
         for filename in pdf_files:
             pdf_path = os.path.join(target_dir, filename)
@@ -147,7 +159,9 @@ class Command(BaseCommand):
                 batch = all_chunks[i:i + batch_size]
 
                 # Prepare the list of strings for the batch API request
-                texts_to_embed = [" ".join(chunk[0].split()) for chunk in batch if len(chunk[0].strip()) >= 40]
+                texts_to_embed = [
+                    " ".join(chunk[0].split()) for chunk in batch if len(chunk[0].strip()) >= 40
+                ]
 
                 if not texts_to_embed:
                     continue
@@ -184,8 +198,13 @@ class Command(BaseCommand):
                     except Exception as e:
                         error_msg = str(e).lower()
                         if "429" in error_msg or "resource_exhausted" in error_msg:
-                            wait_time = 2 ** attempt  # Exponential backoff: 1, 2, 4, 8, 16, 32 seconds
-                            self.stdout.write(self.style.WARNING(f"Rate limited (429). Retrying batch in {wait_time}s..."))
+                            # Exponential backoff: 1, 2, 4, 8, 16, 32 seconds
+                            wait_time = 2 ** attempt
+                            self.stdout.write(
+                                self.style.WARNING(
+                                    f"Rate limited (429). Retrying batch in {wait_time}s..."
+                                )
+                            )
                             time.sleep(wait_time)
                         else:
                             self.stderr.write(self.style.ERROR(f"Failed batch processing: {e}"))
@@ -194,6 +213,8 @@ class Command(BaseCommand):
                 if saved_count % 100 == 0 and saved_count > 0:
                     self.stdout.write(f"Ingested {saved_count}/{len(all_chunks)} chunks...")
 
-            self.stdout.write(self.style.SUCCESS(f"Finished {filename}: Ingested {saved_count} chunks."))
+            self.stdout.write(
+                self.style.SUCCESS(f"Finished {filename}: Ingested {saved_count} chunks.")
+            )
 
         self.stdout.write(self.style.SUCCESS("\nBatch processing complete!"))
