@@ -11,8 +11,14 @@ from rest_framework.views import APIView
 from bookings.models import Booking
 
 from .chapa_service import ChapaService
+from .escrow_service import EscrowService
 from .models import EscrowTransaction
-from .serializers import EscrowInitializeSerializer, EscrowTransactionSerializer
+from .serializers import (
+    EscrowInitializeSerializer,
+    EscrowTransactionSerializer,
+    SessionEndAdjustmentSerializer,
+    WalletLinkingSerializer,
+)
 
 
 class InitializeEscrowPaymentView(APIView):
@@ -171,3 +177,88 @@ class AtomicEscrowReleaseView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class WalletLinkingView(APIView):
+    """
+    POST /api/v1/payments/wallet
+    Validates ownership of wallet with Chapa prior to locking it to Expert profile.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if not hasattr(request.user, "expert_profile"):
+            return Response(
+                {"error": "Only registered experts can link payout wallets."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = WalletLinkingSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        provider = serializer.validated_data["wallet_provider"]
+        account_number = serializer.validated_data["wallet_account_number"]
+
+        # 1. Verify account validity with Chapa API
+        chapa_service = ChapaService()
+        verification_result = chapa_service.verify_account_ownership(
+            provider=provider, account_number=account_number
+        )
+
+        if not verification_result.get("valid"):
+            return Response(
+                {
+                    "error": "Wallet verification failed. Please ensure the account details are valid.",
+                    "details": verification_result.get("message"),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # 2. Persist verified wallet to Expert Profile
+        expert = request.user.expert_profile
+        expert.wallet_provider = provider
+        expert.wallet_account_number = account_number
+        expert.save()
+
+        return Response(
+            {
+                "status": "verified_and_linked",
+                "wallet_provider": provider,
+                "wallet_account_number": account_number,
+                "account_name": verification_result.get("account_name"),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class SessionEndEscrowAdjustmentView(APIView):
+    """
+    POST /api/v1/payments/<booking_id>/session-end
+    Applies precision pro-rata escrow adjustments upon consultation completion.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, booking_id):
+        booking = get_object_or_404(Booking, id=booking_id)
+
+        # Authorize: Only session participants (client/expert) can end the session
+        if request.user != booking.client and request.user != booking.expert.user:
+            return Response(
+                {"error": "You do not have permission to settle this consultation."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = SessionEndAdjustmentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        duration_seconds = serializer.validated_data.get("duration_seconds")
+
+        try:
+            settlement = EscrowService.process_session_settlement(
+                booking=booking,
+                duration_seconds=duration_seconds,
+            )
+            return Response(settlement, status=status.HTTP_200_OK)
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
