@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "bookings.apps.BookingsConfig",
     "admins.apps.AdminsConfig",
     "payments.apps.PaymentsConfig",
+    "reviews.apps.ReviewsConfig",
     # Third-party Apps
     "pgvector",
     "rest_framework",
