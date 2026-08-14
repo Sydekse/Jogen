@@ -44,7 +44,7 @@ interface Booking {
 
 export function MyBookings() {
   const router = useRouter();
-  const { isAuthenticated, user } = useUser();
+  const { isAuthenticated, isExpert } = useUser();
   const [filter, setFilter] = useState<"all" | UIStatus>("all");
   const [now, setNow] = useState(() => Date.now());
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -88,10 +88,10 @@ export function MyBookings() {
             id: b.id,
             expert: {
               id: b.expert,
-              name: user?.is_expert ? (b.client_name || "Client") : (b.expert_name || "Unknown Expert"),
-              title: user?.is_expert ? "Client" : (b.expert_title || "Consultant"),
-              initials: getInitials(user?.is_expert ? (b.client_name || "Client") : (b.expert_name || "")),
-              color: getColor(user?.is_expert ? (b.client_name || "Client") : (b.expert_name || ""))
+              name: isExpert ? (b.client_name || "Client") : (b.expert_name || "Unknown Expert"),
+              title: isExpert ? "Client" : (b.expert_title || "Consultant"),
+              initials: getInitials(isExpert ? (b.client_name || "Client") : (b.expert_name || "")),
+              color: getColor(isExpert ? (b.client_name || "Client") : (b.expert_name || ""))
             },
             topic: "Advisory Consultation",
             date: start.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
@@ -110,7 +110,7 @@ export function MyBookings() {
         toast.error("Failed to fetch bookings.");
       })
       .finally(() => setLoading(false));
-  }, [isAuthenticated, user?.is_expert]);
+  }, [isAuthenticated, isExpert]);
 
   const handleCancel = async (id: string) => {
     if (!confirm("Are you sure you want to cancel this booking?")) return;
