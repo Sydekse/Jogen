@@ -23,8 +23,8 @@ export default function ConsultationRoomWrapper({ bookingId }: { bookingId: stri
         const data = await res.json();
         setToken(data.token);
         setServerUrl(data.livekit_url);
-      } catch (err: any) {
-        setError(err.message || "Failed to connect to the session.");
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Failed to connect to the session.");
       }
     };
 

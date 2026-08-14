@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft, Star, Clock, CheckCircle,
-  Video, Phone, MessageCircle, FileText
+  ArrowLeft, Star, CheckCircle,
+  Video, Phone, MessageCircle
 } from 'lucide-react';
 import { expertService } from '@/src/services/expertService';
 import { ExpertDetail } from '@/src/types/expert';
@@ -112,7 +112,7 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
     const now = new Date();
     availableSlots = availableSlots.filter(slot => {
       const isPM = slot.includes('PM');
-      let [hStr, mStr] = slot.split(' ')[0].split(':');
+      const [hStr, mStr] = slot.split(' ')[0].split(':');
       let h = parseInt(hStr, 10);
       const m = parseInt(mStr, 10);
       if (isPM && h !== 12) h += 12;

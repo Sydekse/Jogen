@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useUser } from '@/src/context/UserContext';
 import { bookingService } from '@/src/services/bookingService';
-import { BookingDetail, BookingChannel, BookingStatus as ApiBookingStatus } from '@/src/types/booking';
+import { BookingDetail } from '@/src/types/booking';
 import { toast } from 'sonner';
 
 // --- Utility ---
@@ -46,7 +46,7 @@ export function MyBookings() {
   const router = useRouter();
   const { isAuthenticated, user } = useUser();
   const [filter, setFilter] = useState<"all" | UIStatus>("all");
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -59,7 +59,7 @@ export function MyBookings() {
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
     if (!token) {
-      setLoading(false);
+      setTimeout(() => setLoading(false), 0);
       return;
     }
     setLoading(true);
@@ -110,7 +110,7 @@ export function MyBookings() {
         toast.error("Failed to fetch bookings.");
       })
       .finally(() => setLoading(false));
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user?.is_expert]);
 
   const handleCancel = async (id: string) => {
     if (!confirm("Are you sure you want to cancel this booking?")) return;
@@ -120,8 +120,8 @@ export function MyBookings() {
       await bookingService.cancelBooking(id, token);
       toast.success("Booking cancelled successfully.");
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status: "cancelled" } : b));
-    } catch (err: any) {
-      toast.error(err.message || "Failed to cancel booking.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to cancel booking.");
     }
   };
 

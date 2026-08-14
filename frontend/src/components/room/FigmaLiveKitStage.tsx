@@ -11,7 +11,7 @@ import {
 import { Track } from 'livekit-client';
 import { 
   Mic, MicOff, Camera, CameraOff, ScreenShare, 
-  PhoneOff, Timer, FileUp, FileText, Send
+  PhoneOff, Timer, FileUp
 } from 'lucide-react';
 
 function cn(...classes: (string | false | undefined | null)[]) {
@@ -32,9 +32,13 @@ export default function FigmaLiveKitStage({ bookingId }: { bookingId: string }) 
   const INITIAL_TIME = 25 * 60; // 25 mins
   const [timeLeft, setTimeLeft] = useState(INITIAL_TIME);
   const [showWarning, setShowWarning] = useState(false);
-  const [extended, setExtended] = useState(false);
   const [notes, setNotes] = useState("");
   const warned = useRef(false);
+
+  const handleEndSession = useCallback(() => {
+    room.disconnect();
+    router.push(`/bookings/${bookingId}/review`);
+  }, [room, router, bookingId]);
 
   // Timer Logic
   useEffect(() => {
@@ -53,20 +57,14 @@ export default function FigmaLiveKitStage({ bookingId }: { bookingId: string }) 
       });
     }, 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [handleEndSession]);
 
   // --- Actions ---
   const toggleMic = () => localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
   const toggleCam = () => localParticipant.setCameraEnabled(!isCameraEnabled);
-  
-  const handleEndSession = () => {
-    room.disconnect();
-    router.push(`/bookings/${bookingId}/review`);
-  };
 
   const authorizeExtension = () => {
     setTimeLeft((prev) => prev + 15 * 60);
-    setExtended(true);
     setShowWarning(false);
     // TODO: Hit Django API to update escrow logic
   };
