@@ -125,7 +125,7 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
   }
 
   // Financial Calculations
-  const perMinuteRate = Math.round(expert.rate_per_session / 30); // Assuming rate_per_session in DB is for 30 mins
+  const perMinuteRate = Math.round(Number(expert.rate_per_session) / 30); // Assuming rate_per_session in DB is for 30 mins
   const total = perMinuteRate * duration;
   const platformFee = Math.round(total * 0.1);
 
