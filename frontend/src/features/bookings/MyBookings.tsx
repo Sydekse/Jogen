@@ -62,7 +62,7 @@ export function MyBookings() {
       setTimeout(() => setLoading(false), 0);
       return;
     }
-    setLoading(true);
+    setTimeout(() => setLoading(true), 0);
     bookingService.getBookings(token)
       .then(data => {
         const mapped = data.map((b: BookingDetail): Booking => {
@@ -106,7 +106,7 @@ export function MyBookings() {
         });
         setBookings(mapped);
       })
-      .catch(err => {
+      .catch(() => {
         toast.error("Failed to fetch bookings.");
       })
       .finally(() => setLoading(false));
