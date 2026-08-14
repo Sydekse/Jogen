@@ -8,7 +8,8 @@ import { ExpertDetail } from '@/src/types/expert';
 interface BookingCheckoutModalProps {
   expert: ExpertDetail;
   selectedDay: string;
-  selectedSlot: string; // e.g. "09:00-09:30" or "14:00-14:30"
+  selectedSlot: string; // e.g. "09:00 AM"
+  duration: number;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -17,6 +18,7 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
   expert,
   selectedDay,
   selectedSlot,
+  duration,
   onClose,
   onSuccess,
 }) => {
@@ -27,17 +29,49 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
   // Derive start and end Datetime objects
   const parseTimes = () => {
     const today = new Date();
-    const [startStr, endStr] = selectedSlot.includes('-')
-      ? selectedSlot.split('-')
-      : ['09:00', '09:30'];
+    let startH = 9, startM = 0;
+    if (selectedSlot) {
+      const isPM = selectedSlot.includes('PM');
+      const timePart = selectedSlot.split(' ')[0];
+      const parts = timePart.split(':');
+      startH = parseInt(parts[0], 10);
+      startM = parseInt(parts[1], 10);
+      if (isPM && startH !== 12) startH += 12;
+      if (!isPM && startH === 12) startH = 0;
+    }
 
-    const [startH, startM] = startStr.split(':').map(Number);
-    const [endH, endM] = endStr.split(':').map(Number);
+    let endH = startH;
+    let endM = startM + duration;
+    while (endM >= 60) {
+      endH += 1;
+      endM -= 60;
+    }
 
-    const startTime = new Date(today);
+    const daysMap: Record<string, number> = {
+      'sun': 0, 'mon': 1, 'tue': 2, 'wed': 3, 'thu': 4, 'fri': 5, 'sat': 6
+    };
+    
+    const targetDay = daysMap[selectedDay.toLowerCase()] ?? today.getDay();
+    let diff = targetDay - today.getDay();
+    
+    if (diff < 0) {
+      diff += 7;
+    }
+    
+    // If it's today but the selected time has already passed, push it to next week
+    if (diff === 0) {
+      if (startH < today.getHours() || (startH === today.getHours() && startM <= today.getMinutes())) {
+         diff += 7;
+      }
+    }
+
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + diff);
+
+    const startTime = new Date(targetDate);
     startTime.setHours(startH || 9, startM || 0, 0, 0);
 
-    const endTime = new Date(today);
+    const endTime = new Date(targetDate);
     endTime.setHours(endH || 9, endM || 30, 0, 0);
 
     return {
@@ -78,7 +112,8 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
     }
   };
 
-  const rate = parseFloat(expert.rate_per_session) || 0;
+  const perMinuteRate = Math.round(parseFloat(expert.rate_per_session) / 30) || 0;
+  const rate = perMinuteRate * duration;
   const platformFee = rate * 0.1; // 10% platform fee
   const totalETB = rate + platformFee;
 
@@ -152,7 +187,7 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
         {/* Price Breakdown */}
         <div className="border-t border-gray-100 pt-4 space-y-2 text-xs text-gray-600">
           <div className="flex justify-between">
-            <span>Expert Rate (30-min)</span>
+            <span>Expert Rate ({duration}-min)</span>
             <span className="font-semibold">{rate.toLocaleString()} ETB</span>
           </div>
           <div className="flex justify-between">

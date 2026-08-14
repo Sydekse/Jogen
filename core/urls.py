@@ -19,12 +19,15 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from .views import LiveKitTokenView
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/auth/", include("users.urls")),
     path("api/v1/chat/", include("ai_service.urls")),
     path("api/v1/experts/", include("experts.urls")),
     path('api/ai/', include('ai_service.urls')),
+    path('api/v1/consultations/video-token/', LiveKitTokenView.as_view(), name='video-token'),
     path("api/v1/consultations/", include("bookings.urls")),
 
 

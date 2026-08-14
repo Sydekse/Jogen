@@ -15,9 +15,12 @@ def reserve_consultation_slot(
     Prevents double-bookings under concurrent requests.
     """
     if scheduled_start >= scheduled_end:
+        print("SERVICE ERROR: scheduled_end before scheduled_start")
         raise ValidationError({"scheduled_end": "Scheduled end time must be after start time."})
 
     if scheduled_start < timezone.now():
+        print(f"SERVICE ERROR: scheduled_start ({scheduled_start})"
+              f" < timezone.now() ({timezone.now()})")
         raise ValidationError({"scheduled_start": "Cannot book a time slot in the past."})
 
     with transaction.atomic():
