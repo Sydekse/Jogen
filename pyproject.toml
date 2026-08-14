@@ -1,5 +1,5 @@
 [tool.ruff]
-line-length = 100
+line-length = 120
 # Exclude auto-generated Django migrations from strict lint rules
 extend-exclude = ["**/migrations/*"]
 

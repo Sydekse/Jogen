@@ -14,6 +14,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -29,9 +30,10 @@ urlpatterns = [
     path('api/ai/', include('ai_service.urls')),
     path('api/v1/consultations/video-token/', LiveKitTokenView.as_view(), name='video-token'),
     path("api/v1/consultations/", include("bookings.urls")),
-
-
-
+    path("api/v1/admin/", include("admins.urls")),
+    path("api/v1/payments/", include("payments.urls")),
+    path("api/v1/reviews/", include("reviews.urls")),
+    path("api/v1/notifications/", include("notifications.urls")),
 ]
 
 

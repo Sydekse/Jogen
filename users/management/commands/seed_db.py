@@ -6,7 +6,7 @@ from users.models import User
 
 
 class Command(BaseCommand):
-    help = 'Seeds the database with test users and experts'
+    help = "Seeds the database with test users and experts"
 
     def handle(self, *args, **kwargs):
         self.stdout.write("Seeding database...")
@@ -19,10 +19,7 @@ class Command(BaseCommand):
                 # Create a main test user (Amanuel Bekele)
                 main_user, created = User.objects.get_or_create(
                     phone_number="+251912345678",
-                    defaults={
-                        "full_name": "Amanuel Bekele",
-                        "preferred_language": "en"
-                    }
+                    defaults={"full_name": "Amanuel Bekele", "preferred_language": "en"},
                 )
                 if created:
                     main_user.set_password("password123")
@@ -117,8 +114,7 @@ class Command(BaseCommand):
 
                 for data in experts_data:
                     user, user_created = User.objects.get_or_create(
-                        phone_number=data["phone"],
-                        defaults={"full_name": data["name"]}
+                        phone_number=data["phone"], defaults={"full_name": data["name"]}
                     )
                     if user_created:
                         user.set_password("expertpass123")
@@ -150,4 +146,4 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f"Error seeding database: {e}"))
             return
 
-        self.stdout.write(self.style.SUCCESS('Successfully seeded database!'))
+        self.stdout.write(self.style.SUCCESS("Successfully seeded database!"))

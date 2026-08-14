@@ -11,5 +11,5 @@ urlpatterns = [
     path("token/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
     path("logout/", TokenBlacklistView.as_view(), name="token-blacklist"),
     path("profile/", UserProfileView.as_view(), name="user-profile"),
-    path("profile/update/", UpdateProfileView.as_view(), name="update-profile")
+    path("profile/update/", UpdateProfileView.as_view(), name="update-profile"),
 ]

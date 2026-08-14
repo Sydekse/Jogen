@@ -94,14 +94,14 @@ class UserProfileView(APIView):
             "id": str(user.id),
             "phone_number": user.phone_number,
             "full_name": user.full_name,
-            "email": user.email, # Included the newly added email
-            "profile_picture": profile_picture_url, # Included the image URL
+            "email": user.email,  # Included the newly added email
+            "profile_picture": profile_picture_url,  # Included the image URL
             "preferred_language": user.preferred_language,
             "is_expert": False,
         }
 
         # Check if user has an expert profile
-        if hasattr(user, 'expert_profile'):
+        if hasattr(user, "expert_profile"):
             expert = user.expert_profile
             data["is_expert"] = True
             data["expert_data"] = {
@@ -157,15 +157,11 @@ class UpdateProfileView(APIView):
 
         if updated:
             user.save()
-            return Response(
-                {"message": "Profile updated successfully!"},
-                status=status.HTTP_200_OK
-            )
+            return Response({"message": "Profile updated successfully!"}, status=status.HTTP_200_OK)
 
         # If no valid fields were sent in the request
         return Response(
-            {"detail": "No valid data provided to update."},
-            status=status.HTTP_400_BAD_REQUEST
+            {"detail": "No valid data provided to update."}, status=status.HTTP_400_BAD_REQUEST
         )
 
     # Bulletproof fallback: If React sends a PUT request, just run the PATCH logic

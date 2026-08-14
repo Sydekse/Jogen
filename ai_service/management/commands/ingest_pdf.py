@@ -19,10 +19,10 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--folder',
+            "--folder",
             type=str,
-            default='proclamations',
-            help='Folder name in the project root containing the PDFs'
+            default="proclamations",
+            help="Folder name in the project root containing the PDFs",
         )
 
     def chunk_by_article(self, text: str) -> list[str]:
@@ -30,15 +30,15 @@ class Command(BaseCommand):
         Splits text semantically by identifying Articles or numbered list items,
         accounting for both English and Amharic numeral prefixes.
         """
-        text = re.sub(r'\n+', '\n', text)
+        text = re.sub(r"\n+", "\n", text)
 
         # Regex captures:
         # 1. "Article", "ARTICLE", or "አንቀጽ" followed by digits or Ethiopic numerals
         # 2. English numbered lists (e.g., "1. ")
         # 3. Amharic numbered lists (e.g., "፩ ")
         pattern = (
-            r'\n(?=(?:Article|ARTICLE|አንቀጽ)\s*(?:\d+|[፩-፼]+)|'
-            r'\d+\.\s+[A-Z]|[፩-፼]+\s+[\u1200-\u137F])'
+            r"\n(?=(?:Article|ARTICLE|አንቀጽ)\s*(?:\d+|[፩-፼]+)|"
+            r"\d+\.\s+[A-Z]|[፩-፼]+\s+[\u1200-\u137F])"
         )
 
         raw_chunks = re.split(pattern, text)
@@ -59,7 +59,7 @@ class Command(BaseCommand):
                 while start < len(clean_chunk):
                     end = start + chunk_size
                     final_chunks.append(clean_chunk[start:end].strip())
-                    start += (chunk_size - overlap)
+                    start += chunk_size - overlap
             else:
                 final_chunks.append(clean_chunk)
 
@@ -102,14 +102,14 @@ class Command(BaseCommand):
         return "\n".join(amharic_lines), "\n".join(english_lines)
 
     def handle(self, *args, **kwargs):
-        folder_name = kwargs['folder']
+        folder_name = kwargs["folder"]
         target_dir = os.path.join(settings.BASE_DIR, folder_name)
 
         if not os.path.exists(target_dir):
             self.stderr.write(self.style.ERROR(f"Directory not found: {target_dir}"))
             return
 
-        pdf_files = [f for f in os.listdir(target_dir) if f.lower().endswith('.pdf')]
+        pdf_files = [f for f in os.listdir(target_dir) if f.lower().endswith(".pdf")]
 
         if not pdf_files:
             self.stdout.write(self.style.WARNING(f"No PDFs found in {target_dir}"))
@@ -156,7 +156,7 @@ class Command(BaseCommand):
 
             # Loop through chunks in batches of 100
             for i in range(0, len(all_chunks), batch_size):
-                batch = all_chunks[i:i + batch_size]
+                batch = all_chunks[i : i + batch_size]
 
                 # Prepare the list of strings for the batch API request
                 texts_to_embed = [
@@ -174,9 +174,8 @@ class Command(BaseCommand):
                             model=embedding_model,
                             contents=texts_to_embed,
                             config=types.EmbedContentConfig(
-                                task_type="RETRIEVAL_DOCUMENT",
-                                output_dimensionality=768
-                            )
+                                task_type="RETRIEVAL_DOCUMENT", output_dimensionality=768
+                            ),
                         )
 
                         # Save the batched vectors to the database
@@ -188,7 +187,7 @@ class Command(BaseCommand):
                             LegalDocumentEmbedding.objects.create(
                                 doc_reference=chunk_ref,
                                 content_chunk=chunk_text,
-                                embedding=embedding_obj.values
+                                embedding=embedding_obj.values,
                             )
                             saved_count += 1
 
@@ -199,7 +198,7 @@ class Command(BaseCommand):
                         error_msg = str(e).lower()
                         if "429" in error_msg or "resource_exhausted" in error_msg:
                             # Exponential backoff: 1, 2, 4, 8, 16, 32 seconds
-                            wait_time = 2 ** attempt
+                            wait_time = 2**attempt
                             self.stdout.write(
                                 self.style.WARNING(
                                     f"Rate limited (429). Retrying batch in {wait_time}s..."
@@ -208,7 +207,7 @@ class Command(BaseCommand):
                             time.sleep(wait_time)
                         else:
                             self.stderr.write(self.style.ERROR(f"Failed batch processing: {e}"))
-                            break # Break on non-429 errors (like 400 Bad Request)
+                            break  # Break on non-429 errors (like 400 Bad Request)
 
                 if saved_count % 100 == 0 and saved_count > 0:
                     self.stdout.write(f"Ingested {saved_count}/{len(all_chunks)} chunks...")

@@ -33,11 +33,11 @@ def test_vector_store_similarity_search():
 
     query_vec = [0.9] * 384 + [0.1] * 384
 
-    results = LegalDocumentEmbedding.objects.filter(
-        doc_reference__icontains="(English)"
-    ).annotate(
-        distance=CosineDistance("embedding", query_vec)
-    ).order_by("distance")
+    results = (
+        LegalDocumentEmbedding.objects.filter(doc_reference__icontains="(English)")
+        .annotate(distance=CosineDistance("embedding", query_vec))
+        .order_by("distance")
+    )
 
     assert results.count() == 1
     assert "(English)" in results.first().doc_reference
@@ -68,7 +68,7 @@ class TestRAGChatAPI:
         LegalDocumentEmbedding.objects.create(
             doc_reference="Electronic Invoicing Directive 1142/2026 (English)",
             content_chunk="Software as a Service (SaaS) means a sales registration system...",
-            embedding=[0.5] * 768
+            embedding=[0.5] * 768,
         )
 
         payload = {
