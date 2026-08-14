@@ -41,8 +41,10 @@ class ConsultationListCreateView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
+        print("API REQUEST DATA:", request.data)
         serializer = BookingCreateSerializer(data=request.data)
         if not serializer.is_valid():
+            print("API SERIALIZER ERRORS:", serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data

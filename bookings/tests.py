@@ -116,7 +116,7 @@ def test_session_file_upload_and_download_flow(mock_s3_cls):
 
     # 1. Request presigned upload URL
     res_url = client_api.post(
-        f"/api/v1/consultations/{booking.id}/files/upload-url",
+        f"/api/v1/consultations/{booking.id}/files/upload-url/",
         {
             "file_name": "business_tax_cert.pdf",
             "file_size": 1024500,
@@ -130,7 +130,7 @@ def test_session_file_upload_and_download_flow(mock_s3_cls):
 
     # 2. Register uploaded file metadata
     res_reg = client_api.post(
-        f"/api/v1/consultations/{booking.id}/files",
+        f"/api/v1/consultations/{booking.id}/files/",
         {
             "file_name": "business_tax_cert.pdf",
             "file_size": 1024500,
@@ -143,9 +143,9 @@ def test_session_file_upload_and_download_flow(mock_s3_cls):
     file_id = res_reg.data["id"]
 
     # 3. Request presigned download URL
-    res_down = client_api.get(f"/api/v1/consultations/{booking.id}/files/{file_id}/download-url")
-    assert res_down.status_code == 200
-    assert res_down.data["download_url"] == "https://s3.amazonaws.com/mock-download-url"
+    res_download = client_api.get(f"/api/v1/consultations/{booking.id}/files/{file_id}/download-url/")
+    assert res_download.status_code == 200
+    assert res_download.data["download_url"] == "https://s3.amazonaws.com/mock-download-url"
 
 
 @pytest.mark.django_db
@@ -167,5 +167,5 @@ def test_unauthorized_user_cannot_access_session_files():
     unauth_api = APIClient()
     unauth_api.force_authenticate(user=unauthorized_user)
 
-    res = unauth_api.get(f"/api/v1/consultations/{booking.id}/files")
+    res = unauth_api.get(f"/api/v1/consultations/{booking.id}/files/")
     assert res.status_code == 404

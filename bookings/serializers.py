@@ -24,6 +24,7 @@ class BookingUpdateSerializer(serializers.ModelSerializer):
 
 class BookingDetailSerializer(serializers.ModelSerializer):
     client_phone = serializers.CharField(source="client.phone_number", read_only=True)
+    client_name = serializers.CharField(source="client.full_name", read_only=True)
     expert_title = serializers.CharField(source="expert.title", read_only=True)
     expert_name = serializers.CharField(source="expert.user.full_name", read_only=True)
 
@@ -32,6 +33,7 @@ class BookingDetailSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "client_phone",
+            "client_name",
             "expert",
             "expert_name",
             "expert_title",

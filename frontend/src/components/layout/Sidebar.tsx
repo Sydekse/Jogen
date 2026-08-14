@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageSquare, Users, BarChart3, Shield, ChevronLeft, ChevronRight, User, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { MessageSquare, Users, BarChart3, Shield, ChevronLeft, ChevronRight, User, Plus, ChevronDown, ChevronUp, Clock } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { JogenLogo } from "@/src/components/ui/jogenLogo";
 import { useUser } from "@/src/context/UserContext";
@@ -11,6 +11,7 @@ import { useChat } from "@/src/context/ChatContext";
 
 const NAV_ITEMS = [
   { id: "experts", label: "Find Experts", icon: Users, href: "/experts" },
+  { id: "bookings", label: "My Bookings", icon: Clock, href: "/bookings" },
   { id: "dashboard", label: "Expert Dashboard", icon: BarChart3, href: "/dashboard" },
   { id: "admin", label: "Admin Console", icon: Shield, href: "/admin" },
   { id: "ai", label: "AI Assistant", icon: MessageSquare, href: "/" },
@@ -31,6 +32,7 @@ export function Sidebar({
   let activeId = "";
   if (pathname === "/") activeId = "ai";
   else if (pathname.startsWith("/experts")) activeId = "experts";
+  else if (pathname.startsWith("/bookings")) activeId = "bookings";
   else if (pathname.startsWith("/dashboard")) activeId = "dashboard";
   else if (pathname.startsWith("/admin")) activeId = "admin";
   else if (pathname.startsWith("/profile")) activeId = "profile";

@@ -1,18 +1,18 @@
-"use client";
+import { ExpertProfile } from '@/src/features/experts/ExpertProfile';
 
-import { use } from "react";
-import { ExpertProfile } from "@/src/features/experts/ExpertProfile";
-
-export default function ExpertProfilePage({
-  params,
+// 1. Make the page async and type params as a Promise
+export default async function ExpertProfilePage({
+  params
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string }>
 }) {
-  const { id } = use(params);
+  // 2. Await the params to unwrap the ID
+  const resolvedParams = await params;
 
   return (
-    <ExpertProfile 
-      expertId={id} 
-    />
+    <main className="min-h-screen bg-background">
+      {/* 3. Pass the unwrapped ID into your component */}
+      <ExpertProfile expertId={resolvedParams.id} />
+    </main>
   );
 }

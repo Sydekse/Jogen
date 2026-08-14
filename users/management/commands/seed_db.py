@@ -41,6 +41,10 @@ class Command(BaseCommand):
                         "tags": ["tax", "commercial_code"],
                         "rate": 1500.00,
                         "status": "verified",
+                        "availability": {"mon": ["00:00-23:59"], "tue": ["00:00-23:59"],
+                         "wed": ["00:00-23:59"],
+                         "thu": ["00:00-23:59"], "fri": ["00:00-23:59"],
+                          "sat": ["00:00-23:59"], "sun": ["00:00-23:59"]}
                     },
                     {
                         "phone": "+251900000002",
@@ -53,6 +57,10 @@ class Command(BaseCommand):
                         "tags": ["startup_law", "ip_law"],
                         "rate": 1200.50,
                         "status": "verified",
+                        "availability": {"mon": ["00:00-23:59"],
+                         "tue": ["00:00-23:59"], "wed": ["00:00-23:59"],
+                         "thu": ["00:00-23:59"], "fri": ["00:00-23:59"],
+                          "sat": ["00:00-23:59"], "sun": ["00:00-23:59"]}
                     },
                     {
                         "phone": "+251900000003",
@@ -65,6 +73,10 @@ class Command(BaseCommand):
                         "tags": ["fx_law", "startup_law"],
                         "rate": 2500.00,
                         "status": "verified",
+                        "availability": {"mon": ["00:00-23:59"], "tue": ["00:00-23:59"],
+                         "wed": ["00:00-23:59"],
+                         "thu": ["00:00-23:59"], "fri": ["00:00-23:59"],
+                          "sat": ["00:00-23:59"], "sun": ["00:00-23:59"]}
                     },
                     {
                         "phone": "+251900000004",
@@ -77,6 +89,10 @@ class Command(BaseCommand):
                         "tags": ["commercial_code"],
                         "rate": 1800.00,
                         "status": "verified",
+                        "availability": {"mon": ["00:00-23:59"], "tue": ["00:00-23:59"],
+                         "wed": ["00:00-23:59"],
+                         "thu": ["00:00-23:59"], "fri": ["00:00-23:59"],
+                          "sat": ["00:00-23:59"], "sun": ["00:00-23:59"]}
                     },
                     {
                         "phone": "+251900000005",
@@ -89,7 +105,11 @@ class Command(BaseCommand):
                         "tags": ["ip_law"],
                         "rate": 1000.00,
                         "status": "pending",
-                    },
+                        "availability": {"mon": ["00:00-23:59"],
+                         "tue": ["00:00-23:59"], "wed": ["00:00-23:59"],
+                         "thu": ["00:00-23:59"], "fri": ["00:00-23:59"],
+                          "sat": ["00:00-23:59"], "sun": ["00:00-23:59"]}
+                    }
                 ]
 
                 for data in experts_data:
@@ -100,7 +120,7 @@ class Command(BaseCommand):
                         user.set_password("expertpass123")
                         user.save()
 
-                    _, exp_created = Expert.objects.get_or_create(
+                    _, exp_created = Expert.objects.update_or_create(
                         user=user,
                         defaults={
                             "title": data["title"],
@@ -110,10 +130,17 @@ class Command(BaseCommand):
                             "verification_status": data["status"],
                             "wallet_provider": "telebirr",
                             "wallet_account_number": data["phone"],
-                        },
+                            "availability": data["availability"],
+                        }
                     )
                     if exp_created:
-                        self.stdout.write(self.style.SUCCESS(f"Created expert: {user.full_name}"))
+                        self.stdout.write(
+                            self.style.SUCCESS(f"Created expert: {user.full_name}")
+                        )
+                    else:
+                        self.stdout.write(
+                            self.style.SUCCESS(f"Updated expert: {user.full_name}")
+                        )
 
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"Error seeding database: {e}"))

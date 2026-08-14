@@ -48,4 +48,24 @@ export const bookingService = {
 
     return res.json();
   },
+
+  /**
+   * Cancel a booking (PATCH /api/v1/consultations/{id}/)
+   */
+  async cancelBooking(bookingId: string, token: string): Promise<BookingDetail> {
+    const res = await fetch(`${API_BASE_URL}/consultations/${bookingId}/`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status: 'cancelled', cancellation_reason: 'User cancelled' }),
+    });
+
+    if (!res.ok) {
+      throw new Error('Failed to cancel the booking.');
+    }
+
+    return res.json();
+  },
 };
