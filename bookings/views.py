@@ -6,6 +6,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from notifications.services import NotificationService
+
 from .models import Booking, SessionFile
 from .serializers import (
     BookingCreateSerializer,
@@ -16,7 +18,6 @@ from .serializers import (
 )
 from .services import reserve_consultation_slot
 from .storage_service import S3StorageService
-from notifications.services import NotificationService
 
 
 class ConsultationListCreateView(APIView):
