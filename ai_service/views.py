@@ -3,7 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import ChatMessage
+from .models import ChatMessage, ChatSessionMetadata
 from .services import RAGPipelineService
 
 
@@ -64,25 +64,71 @@ class ChatHistoryView(APIView):
     def get(self, request):
         # Fetch all messages for user, grouped by session_id
         messages = ChatMessage.objects.filter(sender=request.user).order_by("created_at")
+        
+        # Fetch metadata
+        metadata_qs = ChatSessionMetadata.objects.filter(user=request.user)
+        metadata_map = {str(m.session_id): m.title for m in metadata_qs}
 
         sessions_map = {}
         for msg in messages:
-            if msg.session_id not in sessions_map:
-                sessions_map[msg.session_id] = {
-                    "id": str(msg.session_id),
-                    "title": msg.content[:30] + "..." if msg.role == "user" else "New Conversation",
+            sid = str(msg.session_id)
+            if sid not in sessions_map:
+                # Use metadata title if it exists, otherwise generate one
+                if sid in metadata_map:
+                    title = metadata_map[sid]
+                else:
+                    title = msg.content[:30] + "..." if msg.role == "user" else "New Conversation"
+
+                sessions_map[sid] = {
+                    "id": sid,
+                    "title": title,
                     "messages": [],
                 }
-            sessions_map[msg.session_id]["messages"].append(
+            sessions_map[sid]["messages"].append(
                 {
                     "id": str(msg.id),
                     "sender": msg.role,
                     "text": msg.content,
                 }
             )
-            # Update title to first user message if it's currently default
-            if msg.role == "user" and sessions_map[msg.session_id]["title"] == "New Conversation":
-                sessions_map[msg.session_id]["title"] = msg.content[:30] + "..."
+            # Update title to first user message if it's currently default and no metadata exists
+            if msg.role == "user" and sessions_map[sid]["title"] == "New Conversation" and sid not in metadata_map:
+                sessions_map[sid]["title"] = msg.content[:30] + "..."
 
-        # Return as list, newest first (based on last message, or just reverse dict keys)
+        # Return as list, newest first
         return Response(list(sessions_map.values())[::-1], status=status.HTTP_200_OK)
+
+
+class ChatSessionManagementView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, session_id):
+        new_title = request.data.get("title")
+        if not new_title:
+            return Response({"error": "Title is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verify the session belongs to the user
+        if not ChatMessage.objects.filter(session_id=session_id, sender=request.user).exists():
+            return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        metadata, created = ChatSessionMetadata.objects.get_or_create(
+            session_id=session_id,
+            user=request.user,
+            defaults={'title': new_title}
+        )
+        if not created:
+            metadata.title = new_title
+            metadata.save()
+            
+        return Response({"message": "Session renamed successfully", "title": metadata.title})
+
+    def delete(self, request, session_id):
+        # Delete all messages in the session for this user
+        deleted, _ = ChatMessage.objects.filter(session_id=session_id, sender=request.user).delete()
+        if deleted == 0:
+            return Response({"error": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        # Also delete metadata if it exists
+        ChatSessionMetadata.objects.filter(session_id=session_id, user=request.user).delete()
+        
+        return Response({"message": "Session deleted successfully"}, status=status.HTTP_204_NO_CONTENT)

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ExpertListItem } from '@/src/types/expert';
 import { CheckCircle } from 'lucide-react';
 import { StarRating } from '@/src/components/ui/StarRating';
@@ -25,15 +25,21 @@ function getColor(id: string) {
 }
 
 export const ExpertCard: React.FC<ExpertCardProps> = ({ expert, onTagClick, onView }) => {
+  const [imgError, setImgError] = useState(false);
   return (
     <div className="bg-card border border-border rounded-2xl p-5 hover:border-primary/30 hover:shadow-md transition-all flex flex-col justify-between">
       <div>
         <div className="flex items-start gap-4 mb-4">
           <div 
-            className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0" 
-            style={{ backgroundColor: getColor(expert.id) }}
+            className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden" 
+            style={{ backgroundColor: expert.profile_picture ? 'transparent' : getColor(expert.id) }}
           >
-            {getInitials(expert.full_name || 'Legal Advisor')}
+            {expert.profile_picture && !imgError ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={expert.profile_picture} alt={expert.full_name} className="w-full h-full object-cover" onError={() => setImgError(true)} />
+            ) : (
+              getInitials(expert.full_name || 'Legal Advisor')
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">

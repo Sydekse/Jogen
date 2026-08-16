@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { bookingService } from '@/src/services/bookingService';
+import { paymentService } from '@/src/services/paymentService';
 import { BookingChannel } from '@/src/types/booking';
 import { ExpertDetail } from '@/src/types/expert';
 
@@ -92,7 +93,7 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
 
       const { startISO, endISO } = parseTimes();
 
-      await bookingService.createBooking(
+      const booking = await bookingService.createBooking(
         {
           expert_id: expert.id,
           channel,
@@ -102,7 +103,10 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
         token
       );
 
-      onSuccess();
+      // Initialize Escrow and redirect to Chapa Checkout
+      const { checkout_url } = await paymentService.initializeEscrow(booking.id, token);
+      window.location.href = checkout_url;
+      
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : 'Reservation failed. Please try again.'

@@ -7,6 +7,7 @@ import {
   Video, Phone, MessageCircle
 } from 'lucide-react';
 import { expertService } from '@/src/services/expertService';
+import { reviewService } from '@/src/services/reviewService';
 import { ExpertDetail } from '@/src/types/expert';
 import { BookingCheckoutModal } from '@/src/components/booking/BookingCheckoutModal';
 
@@ -72,8 +73,10 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
   const router = useRouter();
 
   const [expert, setExpert] = useState<ExpertDetail | null>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imgError, setImgError] = useState(false);
 
   // Booking State
   const [selectedDay, setSelectedDay] = useState<string>('');
@@ -92,6 +95,10 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
       })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
+
+    reviewService.getExpertReviews(expertId)
+      .then(data => setReviews(data))
+      .catch(err => console.error("Failed to load reviews:", err));
   }, [expertId]);
 
   if (loading) {
@@ -152,8 +159,13 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
             {/* Header Card */}
             <div className="bg-card border border-border rounded-2xl p-6">
               <div className="flex items-start gap-5">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold text-xl shrink-0 border border-primary/20">
-                  {expert.full_name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold text-xl shrink-0 border border-primary/20 overflow-hidden">
+                  {expert.profile_picture && !imgError ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={expert.profile_picture} alt={expert.full_name} className="w-full h-full object-cover" onError={() => setImgError(true)} />
+                  ) : (
+                    expert.full_name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
+                  )}
                 </div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -166,8 +178,8 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
                   </div>
                   <p className="text-muted-foreground mt-0.5 text-sm">{expert.title}</p>
                   <div className="flex items-center gap-3 mt-2">
-                    <StarRating rating={4.8} size="md" /> {/* Mocked until backend supports reviews */}
-                    <span className="text-sm text-muted-foreground">(48 reviews)</span>
+                    <StarRating rating={reviews.length > 0 ? (reviews.reduce((a, b) => a + b.rating, 0) / reviews.length) : 0} size="md" />
+                    <span className="text-sm text-muted-foreground">({reviews.length} reviews)</span>
                     <span className="text-sm text-muted-foreground">· 8 yrs</span>
                   </div>
                 </div>
@@ -190,10 +202,28 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
             {/* Reviews Card */}
             <div className="bg-card border border-border rounded-2xl p-5">
               <h3 className="font-bold text-foreground mb-4">Client Reviews</h3>
-              <div className="text-center py-8">
-                <Star className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground font-medium">Reviews will be visible once the expert completes their first session.</p>
-              </div>
+              {reviews.length === 0 ? (
+                <div className="text-center py-8">
+                  <Star className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground font-medium">Reviews will be visible once the expert completes their first session.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {reviews.map((rev) => (
+                    <div key={rev.id} className="pb-4 border-b border-border last:border-0 last:pb-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-sm text-foreground">{rev.client_name || "Client"}</span>
+                        <span className="text-xs text-muted-foreground">·</span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(rev.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+                      <div className="mb-2"><StarRating rating={rev.rating} size="sm" /></div>
+                      {rev.comment && <p className="text-sm text-muted-foreground">{rev.comment}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

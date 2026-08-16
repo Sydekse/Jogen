@@ -1,5 +1,6 @@
 from django.db.models import Q
 from rest_framework import status
+from rest_framework.parsers import FormParser, MultiPartParser, JSONParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -20,12 +21,19 @@ class ExpertProfileView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def patch(self, request):
-        expert, _ = Expert.objects.get_or_create(user=request.user)
+        expert, created = Expert.objects.get_or_create(user=request.user)
         serializer = ExpertProfileSerializer(expert, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
+            
+            # Automatically move from unverified to pending when they submit their profile
+            if expert.verification_status == "unverified":
+                expert.verification_status = "pending"
+                expert.save(update_fields=["verification_status"])
+                
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -82,7 +90,7 @@ class ExpertListView(APIView):
         if max_rate:
             queryset = queryset.filter(rate_per_session__lte=max_rate)
 
-        serializer = ExpertListSerializer(queryset, many=True)
+        serializer = ExpertListSerializer(queryset, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -96,14 +104,20 @@ class ExpertDetailView(APIView):
 
     def get(self, request, expert_id):
         try:
-            expert = Expert.objects.get(id=expert_id, verification_status="verified")
+            expert = Expert.objects.get(id=expert_id)
+            if expert.verification_status != "verified":
+                # Allow access if the requester is the owner of the profile or an admin
+                if not request.user.is_authenticated:
+                    raise Expert.DoesNotExist
+                if request.user.id != expert.user.id and not request.user.is_staff:
+                    raise Expert.DoesNotExist
         except Expert.DoesNotExist:
             return Response(
                 {"error": {"code": "NOT_FOUND", "message": "Verified expert not found."}},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        serializer = ExpertDetailSerializer(expert)
+        serializer = ExpertDetailSerializer(expert, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 

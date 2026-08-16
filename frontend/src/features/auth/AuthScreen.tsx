@@ -9,6 +9,7 @@ import { Globe, Sun, Moon, AlertCircle, ArrowLeft } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { JogenLogo } from "@/src/components/ui/jogenLogo";
 import { sendOtpApi, verifyOtpApi } from "@/src/services/authServices";
+import { useModal } from "@/src/context/ModalContext";
 
 type AuthFormData = {
   phoneNumber: string;
@@ -29,6 +30,7 @@ export function AuthScreen({ onLoginSuccess }: { onLoginSuccess: () => void }) {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [timeLeft, setTimeLeft] = useState(300);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const { showAlert } = useModal();
 
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<AuthFormData>({
     mode: "onChange"
@@ -50,7 +52,7 @@ export function AuthScreen({ onLoginSuccess }: { onLoginSuccess: () => void }) {
       setTimeLeft(300);
       setOtp(["", "", "", "", "", ""]);
     } else {
-      alert(result.message);
+      await showAlert(result.message);
     }
   };
 
@@ -78,7 +80,7 @@ export function AuthScreen({ onLoginSuccess }: { onLoginSuccess: () => void }) {
         // Trigger the transition to the chat interface!
         onLoginSuccess();
       } else {
-        alert(result.message);
+        await showAlert(result.message);
         setOtp(["", "", "", "", "", ""]);
         otpRefs.current[0]?.focus();
       }

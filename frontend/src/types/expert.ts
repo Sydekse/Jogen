@@ -3,6 +3,7 @@ export type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'reject
 export interface ExpertListItem {
   id: string;
   full_name: string;
+  profile_picture?: string | null;
   title: string;
   specialty_tags: string[];
   rate_per_session: string; // Decimal string e.g. "800.00"

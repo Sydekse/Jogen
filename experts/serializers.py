@@ -13,6 +13,7 @@ class ExpertProfileSerializer(serializers.ModelSerializer):
             "title",
             "bio",
             "license_number",
+            "license_document",
             "specialty_tags",
             "rate_per_session",
             "verification_status",
@@ -42,17 +43,25 @@ class ExpertListSerializer(serializers.ModelSerializer):
     """
 
     full_name = serializers.CharField(source="user.full_name", read_only=True)
+    profile_picture = serializers.SerializerMethodField()
 
     class Meta:
         model = Expert
         fields = [
             "id",
             "full_name",
+            "profile_picture",
             "title",
             "specialty_tags",
             "rate_per_session",
             "verification_status",
         ]
+
+    def get_profile_picture(self, obj):
+        request = self.context.get("request")
+        if obj.user.profile_picture:
+            return request.build_absolute_uri(obj.user.profile_picture.url) if request else obj.user.profile_picture.url
+        return None
 
 
 class ExpertDetailSerializer(serializers.ModelSerializer):
@@ -61,16 +70,23 @@ class ExpertDetailSerializer(serializers.ModelSerializer):
     """
 
     full_name = serializers.CharField(source="user.full_name", read_only=True)
+    profile_picture = serializers.SerializerMethodField()
 
     class Meta:
         model = Expert
         fields = [
             "id",
             "full_name",
+            "profile_picture",
             "title",
             "bio",
             "specialty_tags",
             "rate_per_session",
-            "verification_status",
             "availability",
         ]
+
+    def get_profile_picture(self, obj):
+        request = self.context.get("request")
+        if obj.user.profile_picture:
+            return request.build_absolute_uri(obj.user.profile_picture.url) if request else obj.user.profile_picture.url
+        return None

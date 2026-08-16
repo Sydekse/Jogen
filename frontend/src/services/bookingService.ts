@@ -1,4 +1,5 @@
 import { BookingCreatePayload, BookingDetail } from '@/src/types/booking';
+import { fetchWithAuth } from '@/src/lib/apiClient';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
@@ -7,12 +8,8 @@ export const bookingService = {
    * Reserve an advisory consultation slot (POST /api/v1/consultations/)
    */
   async createBooking(payload: BookingCreatePayload, token: string): Promise<BookingDetail> {
-    const res = await fetch(`${API_BASE_URL}/consultations/`, {
+    const res = await fetchWithAuth(`${API_BASE_URL}/consultations/`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
       body: JSON.stringify(payload),
     });
 
@@ -33,12 +30,8 @@ export const bookingService = {
    * Fetch all user bookings (GET /api/v1/consultations/)
    */
   async getBookings(token: string): Promise<BookingDetail[]> {
-    const res = await fetch(`${API_BASE_URL}/consultations/`, {
+    const res = await fetchWithAuth(`${API_BASE_URL}/consultations/`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
       cache: 'no-store',
     });
 
@@ -53,12 +46,8 @@ export const bookingService = {
    * Cancel a booking (PATCH /api/v1/consultations/{id}/)
    */
   async cancelBooking(bookingId: string, token: string): Promise<BookingDetail> {
-    const res = await fetch(`${API_BASE_URL}/consultations/${bookingId}/`, {
+    const res = await fetchWithAuth(`${API_BASE_URL}/consultations/${bookingId}/`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
       body: JSON.stringify({ status: 'cancelled', cancellation_reason: 'User cancelled' }),
     });
 

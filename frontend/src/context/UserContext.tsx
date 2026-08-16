@@ -6,6 +6,7 @@ interface UserContextType {
   isAuthenticated: boolean;
   userProfile: Record<string, unknown> | null;
   isExpert: boolean;
+  isAdmin: boolean;
   darkMode: boolean;
   lang: "en" | "am";
   login: () => Promise<void>;
@@ -22,15 +23,25 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userProfile, setUserProfile] = useState<Record<string, unknown> | null>(null);
   const [isExpert, setIsExpert] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [lang, setLang] = useState<"en" | "am">("en");
+
+  React.useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      setIsAuthenticated(true);
+      refreshProfile();
+    }
+  }, []);
 
   const refreshProfile = async () => {
     try {
       const { getUserProfile } = await import('@/src/services/userService');
       const profile = await getUserProfile();
       setUserProfile(profile);
-      setIsExpert(profile.is_expert);
+      setIsExpert(!!profile.is_expert);
+      setIsAdmin(!!profile.is_admin);
     } catch (e) {
       console.error("Failed to refresh user profile:", e);
     }
@@ -45,6 +56,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(false);
     setUserProfile(null);
     setIsExpert(false);
+    setIsAdmin(false);
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
   };
 
   return (
@@ -52,6 +66,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       isAuthenticated,
       userProfile,
       isExpert,
+      isAdmin,
       darkMode,
       lang,
       login,

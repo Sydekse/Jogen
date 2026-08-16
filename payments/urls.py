@@ -9,12 +9,12 @@ from .views import (
 )
 
 urlpatterns = [
-    path("initialize", InitializeEscrowPaymentView.as_view(), name="initialize"),
-    path("webhook", ChapaWebhookView.as_view(), name="webhook"),
-    path("<uuid:booking_id>/release", AtomicEscrowReleaseView.as_view(), name="release"),
-    path("wallet", WalletLinkingView.as_view(), name="wallet_linking"),
+    path("initialize/", InitializeEscrowPaymentView.as_view(), name="initialize"),
+    path("webhook/", ChapaWebhookView.as_view(), name="webhook"),
+    path("<uuid:booking_id>/release/", AtomicEscrowReleaseView.as_view(), name="release"),
+    path("wallet/", WalletLinkingView.as_view(), name="wallet_linking"),
     path(
-        "<uuid:booking_id>/session-end",
+        "<uuid:booking_id>/session-end/",
         SessionEndEscrowAdjustmentView.as_view(),
         name="session_end_adjustment",
     ),

@@ -98,6 +98,7 @@ class UserProfileView(APIView):
             "profile_picture": profile_picture_url,  # Included the image URL
             "preferred_language": user.preferred_language,
             "is_expert": False,
+            "is_admin": user.is_staff or user.is_superuser,
         }
 
         # Check if user has an expert profile
@@ -111,6 +112,7 @@ class UserProfileView(APIView):
                 "rate": str(expert.rate_per_session),
                 "verification_status": expert.verification_status,
                 "specialty_tags": expert.specialty_tags,
+                "availability": expert.availability,
             }
 
         return Response(data, status=status.HTTP_200_OK)
@@ -135,9 +137,15 @@ class UpdateProfileView(APIView):
 
         # Extract the file data
         new_picture = request.FILES.get("profile_picture")
+        new_bio = request.data.get("bio")
 
         # Track if we actually made any changes
         updated = False
+
+        if new_bio is not None and hasattr(user, "expert_profile"):
+            user.expert_profile.bio = new_bio
+            user.expert_profile.save()
+            updated = True
 
         if new_name is not None:
             user.full_name = new_name

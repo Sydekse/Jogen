@@ -8,7 +8,8 @@ import {
   useRoomContext,
   VideoTrack
 } from '@livekit/components-react';
-import { Track } from 'livekit-client';
+import { RoomEvent, LocalParticipant, Track } from 'livekit-client';
+import { paymentService } from '@/src/services/paymentService';
 import { 
   Mic, MicOff, Camera, CameraOff, ScreenShare, 
   PhoneOff, Timer, FileUp
@@ -35,10 +36,19 @@ export default function FigmaLiveKitStage({ bookingId }: { bookingId: string }) 
   const [notes, setNotes] = useState("");
   const warned = useRef(false);
 
-  const handleEndSession = useCallback(() => {
+  const handleEndSession = useCallback(async () => {
     room.disconnect();
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') || '' : '';
+      const durationSeconds = INITIAL_TIME - timeLeft;
+      if (durationSeconds > 0) {
+        await paymentService.submitSessionEnd(bookingId, durationSeconds, token);
+      }
+    } catch (err) {
+      console.error("Failed to submit session end data:", err);
+    }
     router.push(`/bookings/${bookingId}/review`);
-  }, [room, router, bookingId]);
+  }, [room, router, bookingId, timeLeft]);
 
   // Timer Logic
   useEffect(() => {

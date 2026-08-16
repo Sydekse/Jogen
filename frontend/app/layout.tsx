@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import "./globals.css";
 import { UserProvider } from "@/src/context/UserContext";
 import { ChatProvider } from "@/src/context/ChatContext";
+import { ModalProvider } from "@/src/context/ModalContext";
 
 // 1. Initialize the font
 const plusJakarta = Plus_Jakarta_Sans({
@@ -27,10 +28,12 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${plusJakarta.className} antialiased`}>
         <UserProvider>
-          <ChatProvider>
-            {children}
-            <Toaster position="bottom-right" />
-          </ChatProvider>
+          <ModalProvider>
+            <ChatProvider>
+              {children}
+              <Toaster position="bottom-right" />
+            </ChatProvider>
+          </ModalProvider>
         </UserProvider>
       </body>
     </html>
