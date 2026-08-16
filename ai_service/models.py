@@ -5,6 +5,16 @@ from django.db import models
 from pgvector.django import HnswIndex, VectorField
 
 
+class ChatSessionMetadata(models.Model):
+    session_id = models.UUIDField(primary_key=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "chat_session_metadata"
+
+
 class LegalDocumentEmbedding(models.Model):
     """
     Stores legal, tax, and regulatory text chunks alongside vector embeddings

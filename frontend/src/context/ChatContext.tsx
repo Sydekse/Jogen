@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { ChatSession } from '@/src/features/chat/ChatInterface';
 import { useUser } from './UserContext';
+import { useModal } from './ModalContext';
 
 interface ChatContextType {
   sessions: ChatSession[];
@@ -10,6 +11,8 @@ interface ChatContextType {
   activeSessionId: string;
   setActiveSessionId: React.Dispatch<React.SetStateAction<string>>;
   handleNewChat: () => void;
+  handleRenameSession: (id: string, newTitle: string) => Promise<void>;
+  handleDeleteSession: (id: string) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -18,6 +21,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string>("");
   const { isAuthenticated } = useUser();
+  const { showAlert } = useModal();
 
   const handleNewChat = useCallback(() => {
     setSessions(prevSessions => {
@@ -46,6 +50,35 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       return [newSession, ...prevSessions];
     });
   }, [activeSessionId]);
+
+  const handleRenameSession = useCallback(async (id: string, newTitle: string) => {
+    try {
+      const { renameChatSession } = await import('@/src/services/chatService');
+      await renameChatSession(id, newTitle);
+      setSessions(prev => prev.map(s => s.id === id ? { ...s, title: newTitle } : s));
+    } catch (e) {
+      console.error("Failed to rename session:", e);
+      await showAlert("Failed to rename session.");
+    }
+  }, [showAlert]);
+
+  const handleDeleteSession = useCallback(async (id: string) => {
+    try {
+      const { deleteChatSession } = await import('@/src/services/chatService');
+      await deleteChatSession(id);
+      setSessions(prev => {
+        const next = prev.filter(s => s.id !== id);
+        if (activeSessionId === id) {
+          if (next.length > 0) setActiveSessionId(next[0].id);
+          else handleNewChat();
+        }
+        return next;
+      });
+    } catch (e) {
+      console.error("Failed to delete session:", e);
+      await showAlert("Failed to delete session.");
+    }
+  }, [activeSessionId, handleNewChat, showAlert]);
 
   useEffect(() => {
     // Fetch chat history when authenticated
@@ -80,7 +113,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       setSessions,
       activeSessionId,
       setActiveSessionId,
-      handleNewChat
+      handleNewChat,
+      handleRenameSession,
+      handleDeleteSession
     }}>
       {children}
     </ChatContext.Provider>

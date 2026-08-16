@@ -16,6 +16,7 @@ class Notification(models.Model):
         ("reminder_1h", "1-Hour Reminder"),
         ("schedule_change", "Schedule Updated"),
         ("cancellation", "Booking Cancelled"),
+        ("new_booking", "New Booking"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

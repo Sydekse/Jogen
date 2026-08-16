@@ -41,6 +41,13 @@ class ChapaService:
         """
         Calls POST /v1/transaction/initialize with minimal parameters plus callbacks.
         """
+        # Mock for local dev if using the exact default dummy key
+        if self.secret_key == "CHASECK_TEST-dummykey":
+            return {
+                "checkout_url": f"https://checkout.chapa.co/checkout/test-payment/{tx_ref}",
+                "raw_response": {"status": "success", "mocked": True}
+            }
+
         url = f"{self.BASE_URL}/transaction/initialize"
 
         payload = {

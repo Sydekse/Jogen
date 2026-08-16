@@ -3,11 +3,12 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageSquare, Users, BarChart3, Shield, ChevronLeft, ChevronRight, User, Plus, ChevronDown, ChevronUp, Clock } from "lucide-react";
+import { MessageSquare, Users, BarChart3, Shield, ChevronLeft, ChevronRight, User, Plus, ChevronDown, ChevronUp, Clock, Edit2, Trash2 } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { JogenLogo } from "@/src/components/ui/jogenLogo";
 import { useUser } from "@/src/context/UserContext";
 import { useChat } from "@/src/context/ChatContext";
+import { useModal } from "@/src/context/ModalContext";
 
 const NAV_ITEMS = [
   { id: "experts", label: "Find Experts", icon: Users, href: "/experts" },
@@ -24,8 +25,9 @@ export function Sidebar({
   collapsed: boolean; onToggle: () => void;
 }) {
   const pathname = usePathname();
-  const { userProfile, isExpert } = useUser();
-  const { sessions, activeSessionId, setActiveSessionId, handleNewChat } = useChat();
+  const { userProfile, isExpert, isAdmin } = useUser();
+  const { sessions, activeSessionId, setActiveSessionId, handleNewChat, handleRenameSession, handleDeleteSession } = useChat();
+  const { showPrompt, showConfirm } = useModal();
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
 
   // Determine active id based on pathname
@@ -78,6 +80,11 @@ export function Sidebar({
         {NAV_ITEMS.map(({ id, label, icon: Icon, href }) => {
           // Check if this item is active
           const isActive = activeId === id;
+          if (id === "admin" && !isAdmin) return null;
+          
+          const expertDataObj = userProfile?.expert_data as any;
+          if (id === "dashboard" && expertDataObj?.verification_status !== 'verified') return null;
+
           return (
             <div key={id}>
               <Link href={href} title={collapsed ? label : undefined}
@@ -88,9 +95,6 @@ export function Sidebar({
                 {!collapsed && (
                   <div className="flex items-center flex-1 min-w-0 justify-between">
                     <span>{label}</span>
-                    {id === "dashboard" && isExpert && (
-                      <span className="ml-auto text-xs font-bold px-1.5 py-0.5 rounded-full bg-primary-foreground/20">Expert</span>
-                    )}
                     {id === "ai" && isActive && (
                       <div
                         className="p-0.5 rounded hover:bg-primary-foreground/20 ml-1"
@@ -113,16 +117,46 @@ export function Sidebar({
                     <Plus className="w-3 h-3" /> New Chat
                   </button>
                   {sessions.map((session) => (
-                    <button
-                      key={session.id}
-                      onClick={() => setActiveSessionId(session.id)}
-                      className={cn(
-                        "w-full text-left px-2 py-1.5 rounded-lg text-xs hover:bg-accent transition-colors truncate",
-                        session.id === activeSessionId ? "bg-accent font-semibold text-foreground" : "text-muted-foreground"
-                      )}
-                    >
-                      {session.title}
-                    </button>
+                    <div key={session.id} className={cn(
+                      "group relative w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition-colors",
+                      session.id === activeSessionId ? "bg-accent font-semibold text-foreground" : "text-muted-foreground hover:bg-accent"
+                    )}>
+                      <button
+                        onClick={() => setActiveSessionId(session.id)}
+                        className="flex-1 text-left truncate min-w-0"
+                      >
+                        {session.title}
+                      </button>
+                      <div className="hidden group-hover:flex items-center gap-1 shrink-0 bg-accent pl-2">
+                        <button 
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const newTitle = await showPrompt("Enter new session name:", session.title);
+                            if (newTitle && newTitle.trim() !== "") {
+                               handleRenameSession(session.id, newTitle.trim());
+                            }
+                          }}
+                          className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+                          title="Rename"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </button>
+                        <button 
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (await showConfirm("Are you sure you want to delete this chat?")) {
+                               handleDeleteSession(session.id);
+                            }
+                          }}
+                          className="p-1 hover:bg-rose-100 rounded text-muted-foreground hover:text-rose-600"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}

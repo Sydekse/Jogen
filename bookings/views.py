@@ -16,6 +16,7 @@ from .serializers import (
 )
 from .services import reserve_consultation_slot
 from .storage_service import S3StorageService
+from notifications.services import NotificationService
 
 
 class ConsultationListCreateView(APIView):
@@ -54,6 +55,20 @@ class ConsultationListCreateView(APIView):
             scheduled_start=data["scheduled_start"],
             scheduled_end=data["scheduled_end"],
             channel=data.get("channel", "voice"),
+        )
+
+        start_time_str = booking.scheduled_start.strftime("%Y-%m-%d %H:%M UTC")
+        NotificationService.create_and_dispatch(
+            user=booking.client,
+            title="New Booking Confirmed",
+            message=f"Your consultation with {booking.expert.title} is scheduled for {start_time_str}.",
+            notification_type="new_booking"
+        )
+        NotificationService.create_and_dispatch(
+            user=booking.expert.user,
+            title="New Booking Request",
+            message=f"You have a new consultation scheduled for {start_time_str}.",
+            notification_type="new_booking"
         )
 
         return Response(BookingDetailSerializer(booking).data, status=status.HTTP_201_CREATED)

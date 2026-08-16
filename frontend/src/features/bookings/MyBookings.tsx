@@ -44,7 +44,7 @@ interface Booking {
 
 export function MyBookings() {
   const router = useRouter();
-  const { isAuthenticated, isExpert } = useUser();
+  const { isAuthenticated, isExpert, userProfile } = useUser();
   const [filter, setFilter] = useState<"all" | UIStatus>("all");
   const [now, setNow] = useState(() => Date.now());
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -83,15 +83,19 @@ export function MyBookings() {
           }
 
           const mode: SessionMode = b.channel === "chat" ? "text" : b.channel;
+          
+          const isCurrentUserClient = userProfile?.phone_number === b.client_phone;
+          const displayPartyName = isCurrentUserClient ? (b.expert_name || "Unknown Expert") : (b.client_name || "Client");
+          const displayPartyTitle = isCurrentUserClient ? (b.expert_title || "Consultant") : "Client";
 
           return {
             id: b.id,
             expert: {
               id: b.expert,
-              name: isExpert ? (b.client_name || "Client") : (b.expert_name || "Unknown Expert"),
-              title: isExpert ? "Client" : (b.expert_title || "Consultant"),
-              initials: getInitials(isExpert ? (b.client_name || "Client") : (b.expert_name || "")),
-              color: getColor(isExpert ? (b.client_name || "Client") : (b.expert_name || ""))
+              name: displayPartyName,
+              title: displayPartyTitle,
+              initials: getInitials(displayPartyName),
+              color: getColor(displayPartyName)
             },
             topic: "Advisory Consultation",
             date: start.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
@@ -110,7 +114,7 @@ export function MyBookings() {
         toast.error("Failed to fetch bookings.");
       })
       .finally(() => setLoading(false));
-  }, [isAuthenticated, isExpert]);
+  }, [isAuthenticated, userProfile]);
 
   const handleCancel = async (id: string) => {
     if (!confirm("Are you sure you want to cancel this booking?")) return;

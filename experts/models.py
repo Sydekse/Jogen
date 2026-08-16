@@ -34,6 +34,7 @@ class Expert(models.Model):
     title = models.CharField(max_length=255, blank=True)
     bio = models.TextField(blank=True)
     license_number = models.CharField(max_length=100, blank=True, null=True)
+    license_document = models.FileField(upload_to="licenses/", null=True, blank=True)
     specialty_tags = ArrayField(
         models.CharField(max_length=100),
         default=list,

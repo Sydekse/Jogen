@@ -60,7 +60,7 @@ class InitializeEscrowPaymentView(APIView):
                 phone_number=request.user.phone_number,
                 tx_ref=tx_ref,
                 callback_url="https://api.jogen.et/api/v1/payments/webhook",
-                return_url=return_url or "https://jogen.et/consultations",
+                return_url=return_url or "http://localhost:3000/bookings",
             )
 
             escrow_tx, _ = EscrowTransaction.objects.update_or_create(
