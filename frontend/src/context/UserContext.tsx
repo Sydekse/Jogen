@@ -27,14 +27,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [darkMode, setDarkMode] = useState(false);
   const [lang, setLang] = useState<"en" | "am">("en");
 
-  React.useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      setIsAuthenticated(true);
-      refreshProfile();
-    }
-  }, []);
-
   const refreshProfile = async () => {
     try {
       const { getUserProfile } = await import('@/src/services/userService');
@@ -46,6 +38,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
       console.error("Failed to refresh user profile:", e);
     }
   };
+
+  React.useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsAuthenticated(true);
+      refreshProfile();
+    }
+  }, []);
 
   const login = async () => {
     setIsAuthenticated(true);

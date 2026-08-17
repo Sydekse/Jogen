@@ -1,6 +1,6 @@
 from django.db.models import Q
 from rest_framework import status
-from rest_framework.parsers import FormParser, MultiPartParser, JSONParser
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -24,16 +24,16 @@ class ExpertProfileView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def patch(self, request):
-        expert, created = Expert.objects.get_or_create(user=request.user)
+        expert, _ = Expert.objects.get_or_create(user=request.user)
         serializer = ExpertProfileSerializer(expert, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            
+
             # Automatically move from unverified to pending when they submit their profile
             if expert.verification_status == "unverified":
                 expert.verification_status = "pending"
                 expert.save(update_fields=["verification_status"])
-                
+
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
