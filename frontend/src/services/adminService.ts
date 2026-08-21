@@ -3,7 +3,14 @@ import { fetchWithAuth } from '@/src/lib/apiClient';
 import { API_BASE_URL } from '@/src/config/api';
 
 export const adminService = {
-  getExperts: async (status?: string, _token?: string): Promise<any[]> => {
+  getExperts: async (arg1?: string, arg2?: string): Promise<any[]> => {
+    let status: string | undefined = undefined;
+    const validStatuses = ['pending', 'verified', 'rejected', 'unverified'];
+    if (arg1 && validStatuses.includes(arg1)) {
+      status = arg1;
+    } else if (arg2 && validStatuses.includes(arg2)) {
+      status = arg2;
+    }
     let url = `${API_BASE_URL}/admin/experts/`;
     if (status) {
       url += `?verification_status=${status}`;
