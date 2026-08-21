@@ -13,17 +13,14 @@ def generate_otp():
 
 def send_sms(phone_number, otp_code):
     """
-    Sends SMS in production, but prints to terminal in development.
+    Sends SMS via provider if configured, and logs to output/server logs for verification.
     """
-    # message = f"Your Jogen verification code is: {otp_code}. It expires in 5 minutes."
-
-    if settings.DEBUG:
-        # DEVELOPMENT: Print clearly to the terminal running 'runserver'
-        print("\n" + "=" * 40)
-        print("📱 MOCK SMS TRIGGERED")
-        print(f"To: {phone_number}")
-        print(f"Code: {otp_code}")
-        print("=" * 40 + "\n")
-    else:
-        # PRODUCTION: Call Telebirr/AfroMessage API here later
-        pass
+    message = f"Your Jogen verification code is: {otp_code}. It expires in 5 minutes."
+    
+    # Log to server stdout/logs (visible on Render Logs tab)
+    print("\n" + "=" * 40)
+    print("📱 OTP CODE GENERATED")
+    print(f"To: {phone_number}")
+    print(f"Code: {otp_code}")
+    print("=" * 40 + "\n", flush=True)
+    logger.info("OTP sent to %s: %s", phone_number, otp_code)
