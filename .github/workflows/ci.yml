@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop, 'feature/*' ]
+    branches: [ main, develop, 'feature/*', 'fix/*' ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, develop, 'fix/*' ]
 
 jobs:
   # ==========================================
@@ -51,10 +51,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install ruff pip-audit pytest pytest-django pytest-cov
 
       - name: Security & Quality Scan
         run: |
-          pip-audit
           ruff check .
 
       - name: Run Django Migrations
