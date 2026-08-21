@@ -23,7 +23,7 @@ def send_sms(phone_number, otp_code):
         response = requests.post(
             "https://smsethiopia.com/api/sms/send",
             json={
-                "msisdn": phone_number,
+                "msisdn": phone_number[1:],
                 "text": message,
             },
             headers={
