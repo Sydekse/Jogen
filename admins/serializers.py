@@ -11,6 +11,9 @@ class AdminExpertListSerializer(serializers.ModelSerializer):
     """
 
     user_phone = serializers.CharField(source="user.phone_number", read_only=True)
+    user_full_name = serializers.CharField(source="user.full_name", read_only=True)
+    user_email = serializers.CharField(source="user.email", read_only=True)
+    license_document = serializers.FileField(read_only=True)
 
     class Meta:
         model = Expert
@@ -18,9 +21,12 @@ class AdminExpertListSerializer(serializers.ModelSerializer):
             "id",
             "user",
             "user_phone",
+            "user_full_name",
+            "user_email",
             "title",
             "bio",
             "license_number",
+            "license_document",
             "specialty_tags",
             "rate_per_session",
             "verification_status",
