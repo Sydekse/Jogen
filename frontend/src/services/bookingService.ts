@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { BookingCreatePayload, BookingDetail } from '@/src/types/booking';
 import { fetchWithAuth } from '@/src/lib/apiClient';
 import { API_BASE_URL } from '@/src/config/api';
@@ -6,7 +7,7 @@ export const bookingService = {
   /**
    * Reserve an advisory consultation slot (POST /api/v1/consultations/)
    */
-  async createBooking(payload: BookingCreatePayload, token: string): Promise<BookingDetail> {
+  async createBooking(payload: BookingCreatePayload, _token?: string): Promise<BookingDetail> {
     const res = await fetchWithAuth(`${API_BASE_URL}/consultations/`, {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -28,7 +29,7 @@ export const bookingService = {
   /**
    * Fetch all user bookings (GET /api/v1/consultations/)
    */
-  async getBookings(token: string): Promise<BookingDetail[]> {
+  async getBookings(_token?: string): Promise<BookingDetail[]> {
     const res = await fetchWithAuth(`${API_BASE_URL}/consultations/`, {
       method: 'GET',
       cache: 'no-store',
@@ -44,7 +45,7 @@ export const bookingService = {
   /**
    * Cancel a booking (PATCH /api/v1/consultations/{id}/)
    */
-  async cancelBooking(bookingId: string, token: string): Promise<BookingDetail> {
+  async cancelBooking(bookingId: string, _token?: string): Promise<BookingDetail> {
     const res = await fetchWithAuth(`${API_BASE_URL}/consultations/${bookingId}/`, {
       method: 'PATCH',
       body: JSON.stringify({ status: 'cancelled', cancellation_reason: 'User cancelled' }),
@@ -60,7 +61,7 @@ export const bookingService = {
   /**
    * Delete a cancelled or expired booking (DELETE /api/v1/consultations/{id}/)
    */
-  async deleteBooking(bookingId: string, token: string): Promise<void> {
+  async deleteBooking(bookingId: string, _token?: string): Promise<void> {
     const res = await fetchWithAuth(`${API_BASE_URL}/consultations/${bookingId}/`, {
       method: 'DELETE',
     });

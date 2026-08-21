@@ -24,7 +24,7 @@ def test_non_staff_user_forbidden_from_admin_endpoints():
     client = APIClient()
     client.force_authenticate(user=user)
 
-    res = client.get("/api/v1/admin/experts")
+    res = client.get("/api/v1/admin/experts/")
     assert res.status_code == status.HTTP_403_FORBIDDEN
 
 
@@ -46,14 +46,14 @@ def test_compliance_admin_can_list_and_verify_expert():
     admin_client.force_authenticate(user=admin)
 
     # 1. Filter pending experts
-    res_list = admin_client.get("/api/v1/admin/experts?verification_status=pending")
+    res_list = admin_client.get("/api/v1/admin/experts/?verification_status=pending")
     assert res_list.status_code == status.HTTP_200_OK
     data = res_list.data["results"] if "results" in res_list.data else res_list.data
     assert len(data) == 1
 
     # 2. Grant verified badge
     res_verify = admin_client.patch(
-        f"/api/v1/admin/experts/{expert.id}",
+        f"/api/v1/admin/experts/{expert.id}/",
         {"verification_status": "verified"},
         format="json",
     )
@@ -114,7 +114,7 @@ class TestAdminDisputeEngine:
 
     def test_compliance_admin_can_list_disputes(self):
         self.client.force_authenticate(user=self.admin)
-        res = self.client.get("/api/v1/admin/disputes?status=open")
+        res = self.client.get("/api/v1/admin/disputes/?status=open")
         assert res.status_code == status.HTTP_200_OK
         data = res.data["results"] if "results" in res.data else res.data
         assert len(data) == 1
@@ -130,7 +130,7 @@ class TestAdminDisputeEngine:
             "resolution_action": "full_refund",
             "admin_notes": "Full refund issued.",
         }
-        res = self.client.patch(f"/api/v1/admin/disputes/{self.dispute.id}", payload, format="json")
+        res = self.client.patch(f"/api/v1/admin/disputes/{self.dispute.id}/", payload, format="json")
 
         assert res.status_code == status.HTTP_200_OK
         assert res.data["status"] == "resolved"
@@ -153,7 +153,7 @@ class TestAdminDisputeEngine:
             "resolution_action": "split_50_50",
             "admin_notes": "Split fifty-fifty.",
         }
-        res = self.client.patch(f"/api/v1/admin/disputes/{self.dispute.id}", payload, format="json")
+        res = self.client.patch(f"/api/v1/admin/disputes/{self.dispute.id}/", payload, format="json")
 
         assert res.status_code == status.HTTP_200_OK
         assert res.data["status"] == "resolved"

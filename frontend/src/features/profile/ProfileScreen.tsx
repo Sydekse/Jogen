@@ -3,7 +3,7 @@ import { User, Briefcase, FileUp, Save, LogOut, Camera, X } from "lucide-react";
 import { useModal } from "@/src/context/ModalContext";
 import { API_BASE_URL } from "@/src/config/api";
 
-export function ProfileScreen({ isExpert, setIsExpert, onLogout, userProfile, onProfileUpdate }: {
+export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate }: {
   isExpert: boolean;
   setIsExpert: (v: boolean) => void;
   onLogout: () => void;

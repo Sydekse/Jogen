@@ -46,7 +46,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
     const token = localStorage.getItem('access_token');
     if (token) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsAuthenticated(true);
       refreshProfile();
     }

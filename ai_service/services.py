@@ -73,10 +73,16 @@ class RAGPipelineService:
         prompt = (
             f"You are Jogen's AI assistant. {language_instruction}\n\n"
             f"Task:\n"
-            f"1. Determine if the User Question is a REGULATORY/LEGAL/TAX question (e.g. questions about Ethiopian tax laws, labor laws, business licensing, regulations, corporate legal requirements) vs a NON-REGULATORY query (greetings, general platform questions, general conversation).\n"
+            f"1. Determine if the User Question is a REGULATORY/LEGAL/TAX question "
+            f"(e.g. questions about Ethiopian tax laws, labor laws, business licensing, "
+            f"regulations, corporate legal requirements) vs a NON-REGULATORY query "
+            f"(greetings, general platform questions, general conversation).\n"
             f"2. IF IT IS A REGULATORY/LEGAL/TAX QUESTION:\n"
-            f"   - You MUST rely strictly on the provided Context below to give an accurate, confident answer with citations.\n"
-            f"   - If the provided Context is empty, missing, or insufficient to give a confident legal answer, start your response with 'UNCERTAIN_REGULATORY:' and explain briefly that legal references are insufficient.\n"
+            f"   - You MUST rely strictly on the provided Context below to give an accurate, "
+            f"confident answer with citations.\n"
+            f"   - If the provided Context is empty, missing, or insufficient to give a "
+            f"confident legal answer, start your response with 'UNCERTAIN_REGULATORY:' and "
+            f"explain briefly that legal references are insufficient.\n"
             f"3. IF IT IS NOT A REGULATORY QUESTION:\n"
             f"   - Answer directly and helpfully without requiring legal citations or expert escalation.\n\n"
             f"Context:\n{context_str if context_str else 'No matching legal documents found.'}\n\n"
@@ -110,16 +116,34 @@ class RAGPipelineService:
         if raw_answer.startswith("UNCERTAIN_REGULATORY:"):
             clean_answer = raw_answer.replace("UNCERTAIN_REGULATORY:", "").strip()
             if target_language == "am":
-                final_answer = f"{clean_answer}\n\nይህ የሕግ/የደንብ ጥያቄ በመሆኑ እና ትክክለኛ የሕግ ማስረጃዎች ባለመኖራቸው ምክንያት ጉዳዩን ወደ ሕግ ባለሙያ ማስተላለፍ አስፈላጊ ነው።"
+                final_answer = (
+                    f"{clean_answer}\n\n"
+                    f"ይህ የሕግ/የደንብ ጥያቄ በመሆኑ እና ትክክለኛ የሕግ ማስረጃዎች ባለመኖራቸው ምክንያት "
+                    f"ጉዳዩን ወደ ሕግ ባለሙያ ማስተላለፍ አስፈላጊ ነው።"
+                )
             else:
-                final_answer = f"{clean_answer}\n\nSince this is a regulatory question without sufficient legal reference in our database, we cannot answer with full confidence. Please consult a verified expert."
-            needs_escalation = True
-        elif is_regulatory_uncertain and ("regulatory" in answer_lower or "tax" in answer_lower or "law" in answer_lower or len(sources) == 0 and ("article" in user_query.lower() or "tax" in user_query.lower() or "legal" in user_query.lower() or "law" in user_query.lower() or "vat" in user_query.lower() or "license" in user_query.lower())):
-            final_answer = raw_answer
+                final_answer = (
+                    f"{clean_answer}\n\n"
+                    f"Since this is a regulatory question without sufficient legal reference "
+                    f"in our database, we cannot answer with full confidence. "
+                    f"Please consult a verified expert."
+                )
             needs_escalation = True
         else:
-            final_answer = raw_answer
-            needs_escalation = False
+            is_query_regulatory = any(
+                kw in user_query.lower() for kw in ("article", "tax", "legal", "law", "vat", "license")
+            )
+            if is_regulatory_uncertain and (
+                "regulatory" in answer_lower
+                or "tax" in answer_lower
+                or "law" in answer_lower
+                or (len(sources) == 0 and is_query_regulatory)
+            ):
+                final_answer = raw_answer
+                needs_escalation = True
+            else:
+                final_answer = raw_answer
+                needs_escalation = False
 
         return {
             "answer": final_answer,

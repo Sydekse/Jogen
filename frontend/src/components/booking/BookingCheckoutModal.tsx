@@ -109,6 +109,7 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
 
       // Initialize Escrow and redirect to Chapa Checkout
       const { checkout_url } = await paymentService.initializeEscrow(booking.id, token);
+      if (onSuccess) onSuccess();
       window.location.href = checkout_url;
       
     } catch (err: unknown) {

@@ -46,7 +46,7 @@ interface Booking {
 
 export function MyBookings() {
   const router = useRouter();
-  const { isAuthenticated, isExpert, userProfile } = useUser();
+  const { isAuthenticated, userProfile } = useUser();
   const [filter, setFilter] = useState<UIStatus>("upcoming");
   const [now, setNow] = useState(() => Date.now());
   const [bookings, setBookings] = useState<Booking[]>([]);

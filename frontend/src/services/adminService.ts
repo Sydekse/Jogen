@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { fetchWithAuth } from '@/src/lib/apiClient';
 import { API_BASE_URL } from '@/src/config/api';
 
 export const adminService = {
-  getExperts: async (token: string, status?: string): Promise<any[]> => {
+  getExperts: async (status?: string, _token?: string): Promise<any[]> => {
     let url = `${API_BASE_URL}/admin/experts/`;
     if (status) {
       url += `?verification_status=${status}`;
@@ -14,7 +15,7 @@ export const adminService = {
     return response.json();
   },
   
-  getDisputes: async (token: string): Promise<any[]> => {
+  getDisputes: async (_token?: string): Promise<any[]> => {
     const response = await fetchWithAuth(`${API_BASE_URL}/admin/disputes/`);
     if (!response.ok) {
       throw new Error(`Failed to fetch disputes: ${response.status}`);
@@ -22,7 +23,7 @@ export const adminService = {
     return response.json();
   },
   
-  verifyExpert: async (id: string, status: 'verified' | 'rejected', token: string): Promise<void> => {
+  verifyExpert: async (id: string, status: 'verified' | 'rejected', _token?: string): Promise<void> => {
     const response = await fetchWithAuth(`${API_BASE_URL}/admin/experts/${id}/`, {
       method: 'PATCH',
       body: JSON.stringify({ verification_status: status })
@@ -32,7 +33,7 @@ export const adminService = {
     }
   },
   
-  resolveDispute: async (id: string, status: string, action: string, note: string, token: string): Promise<void> => {
+  resolveDispute: async (id: string, status: string, action: string, note: string, _token?: string): Promise<void> => {
     const response = await fetchWithAuth(`${API_BASE_URL}/admin/disputes/${id}/resolve/`, {
       method: 'POST',
       body: JSON.stringify({ status, action, resolution_note: note })

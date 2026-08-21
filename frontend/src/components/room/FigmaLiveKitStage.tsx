@@ -8,7 +8,7 @@ import {
   useRoomContext,
   VideoTrack
 } from '@livekit/components-react';
-import { RoomEvent, LocalParticipant, Track } from 'livekit-client';
+import { Track } from 'livekit-client';
 import { paymentService } from '@/src/services/paymentService';
 import { BookingChannel } from '@/src/types/booking';
 import { fetchWithAuth } from '@/src/lib/apiClient';

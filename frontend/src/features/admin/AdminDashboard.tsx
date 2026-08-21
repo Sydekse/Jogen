@@ -45,7 +45,7 @@ export function AdminDashboard() {
       const token = localStorage.getItem('access_token') || '';
       await adminService.verifyExpert(id, status, token);
       await fetchExperts();
-    } catch (e) {
+    } catch {
       await showAlert("Failed to update expert status");
     }
   };
@@ -55,7 +55,7 @@ export function AdminDashboard() {
       const token = localStorage.getItem('access_token') || '';
       await adminService.resolveDispute(id, 'resolved', action, "Resolved via Admin Console", token);
       await fetchDisputes();
-    } catch (e) {
+    } catch {
       await showAlert("Failed to resolve dispute");
     }
   };

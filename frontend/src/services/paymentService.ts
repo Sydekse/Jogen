@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { fetchWithAuth } from '@/src/lib/apiClient';
 import { API_BASE_URL } from '@/src/config/api';
 
 export const paymentService = {
-  linkWallet: async (provider: string, accountNumber: string, token: string): Promise<{ account_name?: string }> => {
+  linkWallet: async (provider: string, accountNumber: string, _token?: string): Promise<{ account_name?: string }> => {
     const response = await fetchWithAuth(`${API_BASE_URL}/payments/wallet/`, {
       method: 'POST',
       body: JSON.stringify({
@@ -18,7 +19,7 @@ export const paymentService = {
     return response.json();
   },
 
-  initializeEscrow: async (bookingId: string, token: string): Promise<{ checkout_url: string }> => {
+  initializeEscrow: async (bookingId: string, _token?: string): Promise<{ checkout_url: string }> => {
     const response = await fetchWithAuth(`${API_BASE_URL}/payments/initialize/`, {
       method: 'POST',
       body: JSON.stringify({ booking_id: bookingId })
@@ -29,7 +30,7 @@ export const paymentService = {
     return response.json();
   },
 
-  submitSessionEnd: async (bookingId: string, durationSeconds: number, token: string): Promise<{ status: string; decision: string }> => {
+  submitSessionEnd: async (bookingId: string, durationSeconds: number, _token?: string): Promise<{ status: string; decision: string }> => {
     const response = await fetchWithAuth(`${API_BASE_URL}/payments/${bookingId}/session-end/`, {
       method: 'POST',
       body: JSON.stringify({ duration_seconds: durationSeconds }),
