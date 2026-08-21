@@ -6,6 +6,7 @@ from rest_framework import serializers
 
 from bookings.models import Booking
 from experts.models import Expert
+from payments.models import EscrowTransaction
 
 from .models import Review
 
@@ -27,7 +28,20 @@ class ReviewService:
                 {"booking_id": "You can only review consultations you participated in."}
             )
 
-        if booking.status != "completed":
+        if booking.status == "escrowed" and booking.scheduled_end <= timezone.now():
+            booking.status = "completed"
+            booking.save(update_fields=["status", "updated_at"])
+
+        refund_settlement = (
+            booking.status == "cancelled"
+            and EscrowTransaction.objects.filter(
+                booking=booking,
+                status="refunded",
+                raw_provider_response__settlement__decision="grace_period_refund",
+            ).exists()
+        )
+
+        if booking.status != "completed" and not refund_settlement:
             raise serializers.ValidationError(
                 {"booking_id": "Reviews can only be submitted for completed consultations."}
             )

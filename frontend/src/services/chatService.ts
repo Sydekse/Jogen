@@ -1,11 +1,11 @@
 import { fetchWithAuth } from '@/src/lib/apiClient';
-const API_BASE_URL = "http://localhost:8000";
+import { API_BASE_URL } from '@/src/config/api';
 
 export async function getChatHistory() {
   const token = localStorage.getItem("access_token");
   if (!token) throw new Error("No access token found");
 
-  const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/chat/history/`);
+  const response = await fetchWithAuth(`${API_BASE_URL}/chat/history/`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch chat history");
@@ -15,8 +15,8 @@ export async function getChatHistory() {
 }
 
 export async function renameChatSession(sessionId: string, newTitle: string) {
-  const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/chat/sessions/${sessionId}/rename/`, {
-    method: "POST",
+  const response = await fetchWithAuth(`${API_BASE_URL}/chat/session/${sessionId}/`, {
+    method: "PATCH",
     body: JSON.stringify({ title: newTitle })
   });
 
@@ -28,7 +28,7 @@ export async function renameChatSession(sessionId: string, newTitle: string) {
 }
 
 export async function deleteChatSession(sessionId: string) {
-  const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/chat/sessions/${sessionId}/`, {
+  const response = await fetchWithAuth(`${API_BASE_URL}/chat/session/${sessionId}/`, {
     method: "DELETE"
   });
 

@@ -2,6 +2,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+import dj_database_url
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -25,15 +26,16 @@ REST_FRAMEWORK = {
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
+# ENVIRONMENT and SECURITY SETTINGS
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 SECRET_KEY = os.getenv(
     "SECRET_KEY", "django-insecure-403)t%2jn*-iw909g4@bpc8twngw=(p0&b6(q*(9a%^siem!s("
 )
+DEBUG = os.getenv("DEBUG", "True" if ENVIRONMENT == "development" else "False").lower() in ("true", "1", "t")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", "True") == "True"
-
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [host.strip() for host in os.getenv("ALLOWED_HOSTS", "*").split(",") if host.strip()]
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 
 # Application definition
@@ -70,9 +72,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",  # Put this right at the top
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -100,20 +100,26 @@ WSGI_APPLICATION = "core.wsgi.application"
 
 
 # Database Configuration
-# Uses OS environment variables if set (e.g., in CI),
-#  otherwise falls back to local Docker (port 5433)
-# https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("POSTGRES_DB", "jogen_db"),
-        "USER": os.environ.get("POSTGRES_USER", "jogen_user"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "jogen_password"),
-        "HOST": os.environ.get("POSTGRES_HOST", "localhost"),
-        "PORT": os.environ.get("POSTGRES_PORT", "5433"),
+DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("POSTGRES_DB", "jogen_db"),
+            "USER": os.environ.get("POSTGRES_USER", "jogen_user"),
+            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "jogen_password"),
+            "HOST": os.environ.get("POSTGRES_HOST", "localhost"),
+            "PORT": os.environ.get("POSTGRES_PORT", "5433"),
+        }
+    }
 
 
 # Password validation
@@ -158,8 +164,22 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Temporarily allow everything to test if CORS is the blocker
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS and CSRF Security Settings
+CORS_ALLOW_ALL_ORIGINS = os.getenv(
+    "CORS_ALLOW_ALL_ORIGINS", "True" if DEBUG else "False"
+).lower() in ("true", "1", "t")
+
+_default_origins = "http://localhost:3000,http://127.0.0.1:3000"
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOWED_ORIGINS", _default_origins).split(",")
+    if origin.strip()
+]
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("CSRF_TRUSTED_ORIGINS", _default_origins).split(",")
+    if origin.strip()
+]
 
 
 MEDIA_URL = "/media/"

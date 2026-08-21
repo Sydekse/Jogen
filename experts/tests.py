@@ -45,7 +45,7 @@ def test_patch_expert_profile_endpoint():
     assert response.status_code == 200
     assert response.data["title"] == "Senior Regulatory Lawyer"
     assert response.data["specialty_tags"] == ["startup_law", "ip_law"]
-    assert response.data["verification_status"] == "unverified"
+    assert response.data["verification_status"] == "pending"
 
 
 @pytest.mark.django_db
@@ -97,6 +97,34 @@ def test_get_experts_returns_only_verified():
     assert response.status_code == 200
     assert len(response.data) == 1
     assert response.data[0]["full_name"] == "Kebede Verified"
+
+
+@pytest.mark.django_db
+def test_authenticated_expert_is_excluded_from_directory():
+    client = APIClient()
+    expert_user = User.objects.create_user(
+        phone_number="+251911000003", full_name="Current Expert"
+    )
+    Expert.objects.create(
+        user=expert_user,
+        title="Current Expert Profile",
+        verification_status="verified",
+    )
+
+    other_user = User.objects.create_user(
+        phone_number="+251911000004", full_name="Other Expert"
+    )
+    Expert.objects.create(
+        user=other_user,
+        title="Other Expert Profile",
+        verification_status="verified",
+    )
+
+    client.force_authenticate(user=expert_user)
+    response = client.get("/api/v1/experts/")
+
+    assert response.status_code == 200
+    assert [item["full_name"] for item in response.data] == ["Other Expert"]
 
 
 @pytest.mark.django_db

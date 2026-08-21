@@ -1,3 +1,4 @@
+from django.db import models
 from rest_framework import serializers
 
 from .models import Expert
@@ -16,11 +17,12 @@ class ExpertProfileSerializer(serializers.ModelSerializer):
             "license_document",
             "specialty_tags",
             "rate_per_session",
+            "wallet_balance",
             "verification_status",
             "wallet_provider",
             "wallet_account_number",
         ]
-        read_only_fields = ["id", "verification_status"]
+        read_only_fields = ["id", "wallet_balance", "verification_status"]
 
 
 class ExpertAvailabilitySerializer(serializers.ModelSerializer):
@@ -44,6 +46,8 @@ class ExpertListSerializer(serializers.ModelSerializer):
 
     full_name = serializers.CharField(source="user.full_name", read_only=True)
     profile_picture = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
+    total_reviews = serializers.SerializerMethodField()
 
     class Meta:
         model = Expert
@@ -55,6 +59,8 @@ class ExpertListSerializer(serializers.ModelSerializer):
             "specialty_tags",
             "rate_per_session",
             "verification_status",
+            "average_rating",
+            "total_reviews",
         ]
 
     def get_profile_picture(self, obj):
@@ -62,6 +68,13 @@ class ExpertListSerializer(serializers.ModelSerializer):
         if obj.user.profile_picture:
             return request.build_absolute_uri(obj.user.profile_picture.url) if request else obj.user.profile_picture.url
         return None
+
+    def get_average_rating(self, obj):
+        stats = obj.reviews.aggregate(avg=models.Avg("rating"))
+        return round(stats["avg"] or 0.0, 1)
+
+    def get_total_reviews(self, obj):
+        return obj.reviews.count()
 
 
 class ExpertDetailSerializer(serializers.ModelSerializer):
@@ -71,6 +84,8 @@ class ExpertDetailSerializer(serializers.ModelSerializer):
 
     full_name = serializers.CharField(source="user.full_name", read_only=True)
     profile_picture = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
+    total_reviews = serializers.SerializerMethodField()
 
     class Meta:
         model = Expert
@@ -83,6 +98,8 @@ class ExpertDetailSerializer(serializers.ModelSerializer):
             "specialty_tags",
             "rate_per_session",
             "availability",
+            "average_rating",
+            "total_reviews",
         ]
 
     def get_profile_picture(self, obj):
@@ -90,3 +107,10 @@ class ExpertDetailSerializer(serializers.ModelSerializer):
         if obj.user.profile_picture:
             return request.build_absolute_uri(obj.user.profile_picture.url) if request else obj.user.profile_picture.url
         return None
+
+    def get_average_rating(self, obj):
+        stats = obj.reviews.aggregate(avg=models.Avg("rating"))
+        return round(stats["avg"] or 0.0, 1)
+
+    def get_total_reviews(self, obj):
+        return obj.reviews.count()

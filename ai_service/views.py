@@ -13,7 +13,9 @@ class RAGChatView(APIView):
 
     def post(self, request):
         user_query = request.data.get("query")
-        target_language = request.data.get("language", "en")
+        target_language = request.data.get("language") or getattr(request.user, "preferred_language", "en")
+        if target_language not in {"en", "am"}:
+            target_language = "en"
         session_id = request.data.get("session_id")
 
         if not user_query:

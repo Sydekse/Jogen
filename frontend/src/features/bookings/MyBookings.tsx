@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Clock, Video, Phone, MessageCircle, Hash, 
-  Timer, FileText, Star, X, Users 
+  Timer, FileText, Star, X, Users, Trash2, Printer, CheckCircle 
 } from 'lucide-react';
 import { useUser } from '@/src/context/UserContext';
 import { bookingService } from '@/src/services/bookingService';
@@ -29,7 +29,7 @@ function getInitials(name: string) {
 
 // --- Types ---
 type SessionMode = "voice" | "video" | "text";
-type UIStatus = "completed" | "upcoming" | "live" | "cancelled";
+type UIStatus = "completed" | "upcoming" | "live" | "cancelled" | "expired";
 
 interface Expert {
   id: string; name: string; title: string; color: string; initials: string;
@@ -39,21 +39,24 @@ interface Booking {
   id: string; expert: Expert; topic: string;
   date: string; scheduledTime: string; scheduledTs: number;
   duration: number; amount: number; status: UIStatus;
-  mode: SessionMode; invoiceReady?: boolean;
+  mode: SessionMode; invoiceReady?: boolean; hasReview?: boolean;
+  depositAmount?: number; clientRefund?: number; actualDuration?: number;
+  settlementDecision?: string;
 }
 
 export function MyBookings() {
   const router = useRouter();
-  const { isAuthenticated, isExpert, userProfile } = useUser();
-  const [filter, setFilter] = useState<"all" | UIStatus>("all");
+  const { isAuthenticated, userProfile } = useUser();
+  const [filter, setFilter] = useState<UIStatus>("upcoming");
   const [now, setNow] = useState(() => Date.now());
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedInvoiceBooking, setSelectedInvoiceBooking] = useState<Booking | null>(null);
 
-  // Update current time every 30 seconds for accurate countdowns
+  // Update current time every 10 seconds for accurate countdowns
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 30000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setNow(Date.now()), 10000);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -69,16 +72,22 @@ export function MyBookings() {
           const start = new Date(b.scheduled_start);
           const end = new Date(b.scheduled_end);
           const duration = Math.round((end.getTime() - start.getTime()) / 60000);
-          const rate = parseFloat(b.rate_snapshot || "0");
-          const amount = (rate / 30) * duration;
+          const depositAmount = Math.round(parseFloat(b.rate_snapshot || "0"));
+
+          const grossEarned = b.settlement?.gross_earned ? parseFloat(b.settlement.gross_earned) : null;
+          const clientRefund = b.settlement?.client_refund ? parseFloat(b.settlement.client_refund) : 0;
+          const actualDuration = b.settlement?.duration_seconds ? Math.round(b.settlement.duration_seconds / 60) : duration;
+          const finalAmount = grossEarned !== null ? Math.round(grossEarned) : depositAmount;
 
           let uiStatus: UIStatus = "upcoming";
           if (b.status === "completed") uiStatus = "completed";
           else if (b.status === "cancelled") uiStatus = "cancelled";
           else if (b.status === "disputed") uiStatus = "cancelled";
           else {
-            const mins = Math.floor((start.getTime() - Date.now()) / 60000);
-            if (mins <= 5 && mins >= -duration) uiStatus = "live";
+            const endsIn = Math.floor((end.getTime() - Date.now()) / 60000);
+            const startsIn = Math.floor((start.getTime() - Date.now()) / 60000);
+            if (endsIn < 0) uiStatus = "expired";
+            else if (startsIn <= 5 && startsIn >= -duration) uiStatus = "live";
             else uiStatus = "upcoming";
           }
 
@@ -102,10 +111,15 @@ export function MyBookings() {
             scheduledTime: start.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }),
             scheduledTs: start.getTime(),
             duration,
-            amount: Math.round(amount),
+            amount: finalAmount,
+            depositAmount,
+            clientRefund,
+            actualDuration,
+            settlementDecision: b.settlement?.decision,
             status: uiStatus,
             mode,
-            invoiceReady: uiStatus === "completed"
+            invoiceReady: uiStatus === "completed",
+            hasReview: Boolean(b.has_review),
           };
         });
         setBookings(mapped);
@@ -126,6 +140,19 @@ export function MyBookings() {
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status: "cancelled" } : b));
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to cancel booking.");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to remove this booking record?")) return;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    if (!token) return;
+    try {
+      await bookingService.deleteBooking(id, token);
+      toast.success("Booking removed.");
+      setBookings(prev => prev.filter(b => b.id !== id));
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to remove booking.");
     }
   };
 
@@ -151,22 +178,24 @@ export function MyBookings() {
     upcoming:  { label: "Upcoming",  dot: "bg-blue-500",    text: "text-blue-600 dark:text-blue-400" },
     live:      { label: "Live Now",  dot: "bg-red-500 animate-pulse", text: "text-red-600 dark:text-red-400" },
     cancelled: { label: "Cancelled", dot: "bg-muted-foreground", text: "text-muted-foreground" },
+    expired: { label: "Session Expired", dot: "bg-amber-500", text: "text-amber-600 dark:text-amber-400" },
   };
 
   const MODE_ICON: Record<SessionMode, typeof Video> = {
     video: Video, voice: Phone, text: MessageCircle,
   };
 
-  const tabs: Array<{ id: "all" | UIStatus; label: string; count?: number }> = [
-    { id: "all", label: "All", count: bookings.length },
-    { id: "upcoming", label: "Upcoming", count: bookings.filter(b => b.status === "upcoming").length },
+  const upcomingCount = bookings.filter(b => b.status === "upcoming" || b.status === "live").length;
+
+  const tabs: Array<{ id: UIStatus; label: string; count?: number }> = [
+    { id: "upcoming", label: "Upcoming", count: upcomingCount },
     { id: "completed", label: "Completed", count: bookings.filter(b => b.status === "completed").length },
     { id: "cancelled", label: "Cancelled", count: bookings.filter(b => b.status === "cancelled").length },
+    { id: "expired", label: "Expired", count: bookings.filter(b => b.status === "expired").length },
   ];
 
-  const visible = filter === "all" ? bookings : bookings.filter(b => b.status === filter);
+  const visible = bookings.filter(b => filter === "upcoming" ? (b.status === "upcoming" || b.status === "live") : b.status === filter);
   const sorted = [...visible].sort((a, b) => b.scheduledTs - a.scheduledTs);
-  const upcomingCount = bookings.filter(b => b.status === "upcoming" || b.status === "live").length;
 
   if (loading) {
     return <div className="p-8 text-center text-muted-foreground animate-pulse">Loading your bookings...</div>;
@@ -279,7 +308,7 @@ export function MyBookings() {
                         <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />{b.date} · {b.scheduledTime}</span>
                         <span className="flex items-center gap-1.5"><Timer className="w-3.5 h-3.5" />{b.duration} min</span>
                         <span className="flex items-center gap-1.5"><ModeIcon className="w-3.5 h-3.5" />{b.mode.charAt(0).toUpperCase() + b.mode.slice(1)}</span>
-                        <span className="flex items-center gap-1.5"><Hash className="w-3.5 h-3.5" />{b.id}</span>
+                        <span className="flex items-center gap-1.5"><Hash className="w-3.5 h-3.5" />{b.id.slice(0, 8)}</span>
                       </div>
 
                       {/* Countdown Badge */}
@@ -297,15 +326,27 @@ export function MyBookings() {
                         </span>
 
                         <div className="flex flex-wrap items-center gap-2">
-                          {b.status === "completed" && b.invoiceReady && (
-                            <button className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground border border-border px-4 py-2 rounded-lg transition-colors">
+                          {b.status === "completed" && (
+                            <button 
+                              onClick={() => setSelectedInvoiceBooking(b)}
+                              className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground border border-border px-4 py-2 rounded-lg transition-colors"
+                            >
                               <FileText className="w-3.5 h-3.5" />Invoice
                             </button>
                           )}
                           {b.status === "completed" && (
-                            <button onClick={() => router.push(`/bookings/${b.id}/review`)} className="flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary/30 px-4 py-2 rounded-lg hover:bg-primary/5 transition-colors">
-                              <Star className="w-3.5 h-3.5" />Review
-                            </button>
+                            b.hasReview ? (
+                              <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-2 rounded-lg">
+                                <CheckCircle className="w-3.5 h-3.5" /> Reviewed
+                              </span>
+                            ) : (
+                              <button 
+                                onClick={() => router.push(`/bookings/${b.id}/review`)} 
+                                className="flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary/30 px-4 py-2 rounded-lg hover:bg-primary/5 transition-colors"
+                              >
+                                <Star className="w-3.5 h-3.5" />Review
+                              </button>
+                            )
                           )}
                           {joinable && (
                             <button
@@ -317,6 +358,14 @@ export function MyBookings() {
                           {b.status === "upcoming" && !joinable && (
                             <button onClick={() => handleCancel(b.id)} className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground border border-border px-4 py-2 rounded-lg hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-colors">
                               <X className="w-3.5 h-3.5" />Cancel
+                            </button>
+                          )}
+                          {(b.status === "cancelled" || b.status === "expired") && (
+                            <button 
+                              onClick={() => handleDelete(b.id)} 
+                              className="flex items-center gap-1.5 text-xs font-semibold text-destructive border border-destructive/30 px-3.5 py-2 rounded-lg hover:bg-destructive/10 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />Remove
                             </button>
                           )}
                           {b.status === "cancelled" && (
@@ -346,6 +395,94 @@ export function MyBookings() {
           </button>
         </div>
       </div>
+
+      {/* Invoice Modal */}
+      {selectedInvoiceBooking && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl max-w-lg w-full p-6 md:p-8 space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95">
+            <button 
+              onClick={() => setSelectedInvoiceBooking(null)}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="border-b border-border pb-4 flex justify-between items-start">
+              <div>
+                <h2 className="text-xl font-bold text-foreground">Consultation Invoice</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Official Service Receipt · Jogen Platform</p>
+              </div>
+              <div className="text-right">
+                <span className="text-xs font-mono font-bold text-primary block">
+                  INV-{selectedInvoiceBooking.id.slice(0, 8).toUpperCase()}
+                </span>
+                <span className="text-xs text-muted-foreground">{selectedInvoiceBooking.date}</span>
+              </div>
+            </div>
+
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-4 bg-muted/30 p-4 rounded-xl">
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">Expert Advisor</p>
+                  <p className="font-bold text-foreground">{selectedInvoiceBooking.expert.name}</p>
+                  <p className="text-xs text-muted-foreground">{selectedInvoiceBooking.expert.title}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">Session Mode & Duration</p>
+                  <p className="font-bold text-foreground capitalize">{selectedInvoiceBooking.mode} Consultation</p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedInvoiceBooking.actualDuration ?? selectedInvoiceBooking.duration} Mins Used
+                    {selectedInvoiceBooking.actualDuration && selectedInvoiceBooking.actualDuration < selectedInvoiceBooking.duration ? ` (${selectedInvoiceBooking.duration} Mins Scheduled)` : ''}
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-4 space-y-2">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Initial Escrow Deposit ({selectedInvoiceBooking.duration} mins)</span>
+                  <span>{(selectedInvoiceBooking.depositAmount ?? selectedInvoiceBooking.amount).toLocaleString()} ETB</span>
+                </div>
+                {Boolean(selectedInvoiceBooking.clientRefund && selectedInvoiceBooking.clientRefund > 0) && (
+                  <div className="flex justify-between text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                    <span>Early Departure Refund (Unused Time)</span>
+                    <span>-{selectedInvoiceBooking.clientRefund?.toLocaleString()} ETB</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Platform & Escrow Service Fee (2.5%)</span>
+                  <span>Included</span>
+                </div>
+                <div className="flex justify-between font-bold text-base text-foreground pt-2 border-t border-border">
+                  <span>Total Actual Amount Paid</span>
+                  <span className="text-primary">{selectedInvoiceBooking.amount.toLocaleString()} ETB</span>
+                </div>
+              </div>
+
+              <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 p-3 rounded-xl flex items-center justify-between text-xs font-semibold">
+                <span className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" /> Escrow Settlement Completed
+                </span>
+                <span>Chapa Pay</span>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button 
+                onClick={() => window.print()}
+                className="flex-1 py-3 bg-primary text-primary-foreground text-xs font-bold rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+              >
+                <Printer className="w-4 h-4" /> Print / Save PDF
+              </button>
+              <button 
+                onClick={() => setSelectedInvoiceBooking(null)}
+                className="py-3 px-5 border border-border text-foreground text-xs font-semibold rounded-xl hover:bg-muted transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

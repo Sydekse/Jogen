@@ -1,9 +1,8 @@
-// Bypass Next.js rewrites and talk directly to Django on port 8000
-const API_BASE_URL = "http://localhost:8000";
+import { API_BASE_URL } from "@/src/config/api";
 
 export async function sendOtpApi(phoneNumber: string) {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/auth/request-otp/`, {
+    const response = await fetch(`${API_BASE_URL}/auth/request-otp/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -38,7 +37,7 @@ export async function sendOtpApi(phoneNumber: string) {
 
 export async function verifyOtpApi(phoneNumber: string, otpCode: string) {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/auth/verify-otp/`, {
+    const response = await fetch(`${API_BASE_URL}/auth/verify-otp/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

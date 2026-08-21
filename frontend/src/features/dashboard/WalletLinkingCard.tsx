@@ -2,12 +2,17 @@ import React, { useState } from 'react';
 import { Wallet, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { paymentService } from '@/src/services/paymentService';
 
-export function WalletLinkingCard() {
-  const [provider, setProvider] = useState('telebirr');
-  const [accountNumber, setAccountNumber] = useState('');
+export function WalletLinkingCard({ walletProvider, walletAccountNumber }: { walletProvider?: string; walletAccountNumber?: string }) {
+  const [provider, setProvider] = useState(walletProvider || 'telebirr');
+  const [accountNumber, setAccountNumber] = useState(walletAccountNumber || '');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+
+  React.useEffect(() => {
+    if (walletProvider) setProvider(walletProvider);
+    if (walletAccountNumber !== undefined) setAccountNumber(walletAccountNumber);
+  }, [walletProvider, walletAccountNumber]);
 
   const handleLinkWallet = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +54,7 @@ export function WalletLinkingCard() {
             className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
           >
             <option value="telebirr">Telebirr</option>
-            <option value="cbebirr">CBE Birr</option>
+            <option value="cbe_birr">CBE Birr</option>
             <option value="mpesa">M-Pesa</option>
           </select>
         </div>
@@ -69,14 +74,14 @@ export function WalletLinkingCard() {
         </div>
 
         {status === 'success' && (
-          <div className="flex items-start gap-2 p-3 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100 text-xs font-medium">
+          <div className="flex items-start gap-2 p-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl border border-emerald-500/20 text-xs font-medium">
             <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
             <p>{message}</p>
           </div>
         )}
 
         {status === 'error' && (
-          <div className="flex items-start gap-2 p-3 bg-rose-50 text-rose-700 rounded-xl border border-rose-100 text-xs font-medium">
+          <div className="flex items-start gap-2 p-3 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl border border-rose-500/20 text-xs font-medium">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <p>{message}</p>
           </div>

@@ -113,6 +113,9 @@ class UserProfileView(APIView):
                 "verification_status": expert.verification_status,
                 "specialty_tags": expert.specialty_tags,
                 "availability": expert.availability,
+                "wallet_provider": expert.wallet_provider,
+                "wallet_account_number": expert.wallet_account_number,
+                "wallet_balance": str(expert.wallet_balance),
             }
 
         return Response(data, status=status.HTTP_200_OK)

@@ -24,7 +24,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [userProfile, setUserProfile] = useState<Record<string, unknown> | null>(null);
   const [isExpert, setIsExpert] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkModeState] = useState(false);
   const [lang, setLang] = useState<"en" | "am">("en");
 
   const refreshProfile = async () => {
@@ -40,13 +40,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   React.useEffect(() => {
+    const storedTheme = localStorage.getItem('jogen_theme');
+    if (storedTheme === 'dark' || storedTheme === 'light') {
+      setDarkModeState(storedTheme === 'dark');
+    }
     const token = localStorage.getItem('access_token');
     if (token) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsAuthenticated(true);
       refreshProfile();
     }
   }, []);
+
+  const setDarkMode = (mode: boolean) => {
+    setDarkModeState(mode);
+    localStorage.setItem('jogen_theme', mode ? 'dark' : 'light');
+  };
 
   const login = async () => {
     setIsAuthenticated(true);
@@ -77,7 +85,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setLang,
       setIsExpert
     }}>
-      <div className={darkMode ? "dark" : ""}>
+      <div className={darkMode ? "dark min-h-screen" : "min-h-screen"}>
         {children}
       </div>
     </UserContext.Provider>

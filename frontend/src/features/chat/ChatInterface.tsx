@@ -4,11 +4,14 @@ import React, { useState, useRef, useEffect } from "react";
 import { Send, Loader2 } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { JogenLogo } from "@/src/components/ui/jogenLogo";
+import { useUser } from "@/src/context/UserContext";
+import { API_BASE_URL } from "@/src/config/api";
 
 export interface Message {
   id: string;
   sender: "user" | "ai" | "system";
   text: string;
+  needsEscalation?: boolean;
 }
 
 export interface ChatSession {
@@ -28,6 +31,7 @@ export default function ChatInterface({
 }) {
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { lang } = useUser();
   const endRef = useRef<HTMLDivElement>(null);
 
   const activeSession = sessions.find((s) => s.id === activeSessionId) || sessions[0];
@@ -69,22 +73,26 @@ export default function ChatInterface({
 
     try {
       const token = localStorage.getItem("access_token");
-      const response = await fetch("http://localhost:8000/api/v1/chat/", {
+      const response = await fetch(`${API_BASE_URL}/chat/`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
           "Authorization": token ? `Bearer ${token}` : ""
         },
-        body: JSON.stringify({ query: currentText, session_id: activeSession.id }),
+        body: JSON.stringify({ query: currentText, session_id: activeSession.id, language: lang }),
       });
 
-      if (!response.ok) throw new Error("Failed to communicate with backend");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.detail || `AI request failed (${response.status})`);
+      }
 
       const data = await response.json();
       const aiReply: Message = {
         id: (Date.now() + 1).toString(),
         sender: "ai",
         text: data.answer || data.response || "No response text found.",
+        needsEscalation: Boolean(data.needs_escalation),
       };
 
       setSessions((prev) => prev.map((session) =>
@@ -97,7 +105,7 @@ export default function ChatInterface({
       const errorReply: Message = {
         id: (Date.now() + 1).toString(),
         sender: "system",
-        text: "Error connecting to the AI server. Please make sure the backend is running.",
+        text: error instanceof Error ? error.message : "The AI could not answer this message.",
       };
       setSessions((prev) => prev.map((session) =>
         session.id === activeSession.id
@@ -143,7 +151,18 @@ export default function ChatInterface({
                   ? "border-2 border-destructive/30 bg-destructive/5 rounded-2xl rounded-tl-sm text-destructive"
                   : "bg-muted rounded-2xl rounded-tl-sm text-foreground"
             )}>
-              {msg.text}
+              <>
+                {msg.text}
+                {msg.needsEscalation && (
+                  <button
+                    type="button"
+                    onClick={() => { window.location.href = '/experts'; }}
+                    className="block mt-3 px-3 py-1.5 rounded-lg bg-destructive text-destructive-foreground text-xs font-bold"
+                  >
+                    Find a verified expert
+                  </button>
+                )}
+              </>
             </div>
           </div>
         ))}

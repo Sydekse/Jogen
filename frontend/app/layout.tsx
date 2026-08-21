@@ -5,6 +5,7 @@ import "./globals.css";
 import { UserProvider } from "@/src/context/UserContext";
 import { ChatProvider } from "@/src/context/ChatContext";
 import { ModalProvider } from "@/src/context/ModalContext";
+import { NotificationToasts } from "@/src/components/notifications/NotificationToasts";
 
 // 1. Initialize the font
 const plusJakarta = Plus_Jakarta_Sans({
@@ -26,12 +27,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${plusJakarta.className} antialiased`}>
+      <body className={`${plusJakarta.className} antialiased bg-background text-foreground`}>
         <UserProvider>
           <ModalProvider>
             <ChatProvider>
               {children}
               <Toaster position="bottom-right" />
+              <NotificationToasts />
             </ChatProvider>
           </ModalProvider>
         </UserProvider>

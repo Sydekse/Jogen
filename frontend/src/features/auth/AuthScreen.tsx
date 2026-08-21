@@ -10,6 +10,7 @@ import { cn } from "@/src/lib/utils";
 import { JogenLogo } from "@/src/components/ui/jogenLogo";
 import { sendOtpApi, verifyOtpApi } from "@/src/services/authServices";
 import { useModal } from "@/src/context/ModalContext";
+import { useUser } from "@/src/context/UserContext";
 
 type AuthFormData = {
   phoneNumber: string;
@@ -24,7 +25,7 @@ function formatTime(s: number) {
 // Named export with the onLoginSuccess prop
 export function AuthScreen({ onLoginSuccess }: { onLoginSuccess: () => void }) {
   const [lang, setLang] = useState<"en" | "am">("en");
-  const [darkMode, setDarkMode] = useState(false);
+  const { darkMode, setDarkMode } = useUser();
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [submittedPhone, setSubmittedPhone] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -52,7 +53,18 @@ export function AuthScreen({ onLoginSuccess }: { onLoginSuccess: () => void }) {
       setTimeLeft(300);
       setOtp(["", "", "", "", "", ""]);
     } else {
-      await showAlert(result.message);
+      await showAlert(result.message || "Failed to request verification code.");
+    }
+  };
+
+  const handleResend = async () => {
+    const result = await sendOtpApi(submittedPhone);
+    if (result.success) {
+      setTimeLeft(300);
+      setOtp(["", "", "", "", "", ""]);
+      otpRefs.current[0]?.focus();
+    } else {
+      await showAlert(result.message || "Failed to resend verification code.");
     }
   };
 
@@ -80,7 +92,7 @@ export function AuthScreen({ onLoginSuccess }: { onLoginSuccess: () => void }) {
         // Trigger the transition to the chat interface!
         onLoginSuccess();
       } else {
-        await showAlert(result.message);
+        await showAlert(result.message || "Invalid verification code.");
         setOtp(["", "", "", "", "", ""]);
         otpRefs.current[0]?.focus();
       }
@@ -203,7 +215,7 @@ export function AuthScreen({ onLoginSuccess }: { onLoginSuccess: () => void }) {
                   </span>
                   <button
                     disabled={timeLeft > 0}
-                    onClick={() => { setTimeLeft(300); setOtp(["", "", "", "", "", ""]); }}
+                    onClick={handleResend}
                     className="text-primary disabled:text-muted-foreground disabled:cursor-not-allowed font-semibold transition-colors"
                   >
                     {lang === "en" ? "Resend Code" : "ኮድ እንደገና ላክ"}

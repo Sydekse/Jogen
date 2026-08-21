@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -45,14 +47,19 @@ def reserve_consultation_slot(
                 {"slot": "This expert slot has already been reserved or booked by another user."}
             )
 
-        # 3. Create reservation with locked rate_snapshot
+        # 3. Create reservation with locked prorated rate_snapshot
+        duration_minutes = Decimal(str((scheduled_end - scheduled_start).total_seconds() / 60.0))
+        prorated_rate = (expert.rate_per_session * (duration_minutes / Decimal("30"))).quantize(
+            Decimal("0.01")
+        )
+
         booking = Booking.objects.create(
             client=client,
             expert=expert,
             channel=channel,
             scheduled_start=scheduled_start,
             scheduled_end=scheduled_end,
-            rate_snapshot=expert.rate_per_session,
+            rate_snapshot=prorated_rate,
             status="pending_payment",
         )
 

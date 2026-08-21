@@ -1,6 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { fetchWithAuth } from '@/src/lib/apiClient';
-
-const API_BASE_URL = 'http://localhost:8000/api/v1/notifications';
+import { API_BASE_URL } from '@/src/config/api';
 
 export interface Notification {
   id: string;
@@ -12,16 +12,16 @@ export interface Notification {
 }
 
 export const notificationService = {
-  getNotifications: async (token?: string): Promise<Notification[]> => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/`);
+  getNotifications: async (_token?: string): Promise<Notification[]> => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/notifications/`);
     if (!response.ok) {
       throw new Error(`Failed to fetch notifications: ${response.status}`);
     }
     return response.json();
   },
 
-  markAsRead: async (id: string, token?: string): Promise<void> => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/${id}`, {
+  markAsRead: async (id: string, _token?: string): Promise<void> => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/notifications/${id}/`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

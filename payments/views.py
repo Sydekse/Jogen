@@ -1,6 +1,7 @@
 import uuid
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -24,14 +25,15 @@ from .serializers import (
 class InitializeEscrowPaymentView(APIView):
     """
     POST /api/v1/payments/initialize
-    Pessimistically locks booking and generates Chapa Checkout URL.
+    Initializes escrow payment via Chapa and returns checkout_url.
     """
 
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serializer = EscrowInitializeSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         booking_id = serializer.validated_data["booking_id"]
         return_url = serializer.validated_data.get("return_url")
@@ -54,13 +56,16 @@ class InitializeEscrowPaymentView(APIView):
             tx_ref = f"JOGEN-ESCROW-{uuid.uuid4().hex[:12].upper()}"
             amount = booking.rate_snapshot
 
+            frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:3000")
+            backend_url = getattr(settings, "BACKEND_URL", "http://localhost:8000")
+
             chapa_service = ChapaService()
             init_res = chapa_service.initialize_payment(
                 amount=amount,
                 phone_number=request.user.phone_number,
                 tx_ref=tx_ref,
-                callback_url="https://api.jogen.et/api/v1/payments/webhook",
-                return_url=return_url or "http://localhost:3000/bookings",
+                callback_url=f"{backend_url}/api/v1/payments/webhook/",
+                return_url=return_url or f"{frontend_url}/bookings",
             )
 
             escrow_tx, _ = EscrowTransaction.objects.update_or_create(
@@ -68,11 +73,15 @@ class InitializeEscrowPaymentView(APIView):
                 defaults={
                     "tx_ref": tx_ref,
                     "amount": amount,
-                    "status": "initiated",
+                    "status": "held" if init_res.get("raw_response", {}).get("mocked") else "initiated",
                     "chapa_checkout_url": init_res["checkout_url"],
                     "raw_provider_response": init_res["raw_response"],
                 },
             )
+
+            if escrow_tx.status == "held":
+                booking.status = "escrowed"
+                booking.save(update_fields=["status", "updated_at"])
 
             return Response(
                 {
@@ -261,4 +270,4 @@ class SessionEndEscrowAdjustmentView(APIView):
             )
             return Response(settlement, status=status.HTTP_200_OK)
         except ValueError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(e)}, status=status.HTTP_409_CONFLICT)

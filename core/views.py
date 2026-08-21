@@ -34,6 +34,8 @@ class LiveKitTokenView(APIView):
         token.with_grants(api.VideoGrants(
             room_join=True,
             room=room_name,
+            can_publish=True,
+            can_subscribe=True,
         ))
 
         return Response({

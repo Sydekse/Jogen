@@ -1,11 +1,11 @@
 import { fetchWithAuth } from '@/src/lib/apiClient';
-const API_BASE_URL = "http://localhost:8000";
+import { API_BASE_URL } from '@/src/config/api';
 
 export async function getUserProfile() {
   const token = localStorage.getItem("access_token");
   if (!token) throw new Error("No access token found");
 
-  const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/auth/profile/`, {
+  const response = await fetchWithAuth(`${API_BASE_URL}/auth/profile/`, {
     cache: 'no-store'
   });
 

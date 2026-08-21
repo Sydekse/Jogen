@@ -169,3 +169,27 @@ def test_unauthorized_user_cannot_access_session_files():
 
     res = unauth_api.get(f"/api/v1/consultations/{booking.id}/files/")
     assert res.status_code == 404
+
+
+@pytest.mark.django_db
+def test_delete_cancelled_or_expired_booking():
+    client_user = User.objects.create_user(phone_number="+251911999999")
+    expert_user = User.objects.create_user(phone_number="+251911000000")
+    expert = Expert.objects.create(user=expert_user, verification_status="verified")
+
+    start_time = timezone.now() - timedelta(days=2)
+    booking = Booking.objects.create(
+        client=client_user,
+        expert=expert,
+        scheduled_start=start_time,
+        scheduled_end=start_time + timedelta(minutes=30),
+        status="cancelled",
+        rate_snapshot=500.00,
+    )
+
+    api = APIClient()
+    api.force_authenticate(user=client_user)
+
+    res = api.delete(f"/api/v1/consultations/{booking.id}/")
+    assert res.status_code == 204
+    assert not Booking.objects.filter(id=booking.id).exists()

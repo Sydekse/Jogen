@@ -1,10 +1,22 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { fetchWithAuth } from '@/src/lib/apiClient';
-
-const API_BASE_URL = 'http://localhost:8000/api/v1/reviews';
+import { API_BASE_URL } from '@/src/config/api';
 
 export const reviewService = {
-  getExpertReviews: async (expertId: string, token?: string): Promise<any[]> => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/expert/${expertId}/`);
+  submitReview: async (bookingId: string, rating: number, comment: string, _token?: string): Promise<any> => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/reviews/`, {
+      method: 'POST',
+      body: JSON.stringify({ booking_id: bookingId, rating, comment }),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.booking_id?.[0] || data.detail || 'Failed to submit review.');
+    }
+    return response.json();
+  },
+
+  getExpertReviews: async (expertId: string, _token?: string): Promise<any[]> => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/reviews/expert/${expertId}/`);
     if (!response.ok) {
       throw new Error(`Failed to fetch reviews: ${response.status}`);
     }

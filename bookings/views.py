@@ -1,6 +1,10 @@
+import os
 import uuid
 
+from django.conf import settings
+from django.core.files.storage import default_storage
 from django.db.models import Q
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -83,7 +87,48 @@ class ConsultationDetailView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    def get(self, request, booking_id):
+        try:
+            booking = Booking.objects.select_related("client", "expert", "expert__user").get(
+                Q(client=request.user) | Q(expert__user=request.user),
+                id=booking_id,
+            )
+        except Booking.DoesNotExist:
+            return Response(
+                {"error": {"code": "NOT_FOUND", "message": "Booking record not found."}},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response(BookingDetailSerializer(booking).data, status=status.HTTP_200_OK)
+
     def patch(self, request, booking_id):
+        try:
+            booking = Booking.objects.get(
+                client=request.user,
+                id=booking_id,
+            )
+        except Booking.DoesNotExist:
+            return Response(
+                {"error": {"code": "NOT_FOUND", "message": "Booking record not found."}},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if request.data.get("status") == "cancelled" and booking.status in {
+            "cancelled",
+            "completed",
+        }:
+            return Response(
+                {"error": {"code": "INVALID_STATUS", "message": "This booking cannot be cancelled."}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = BookingUpdateSerializer(booking, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(BookingDetailSerializer(booking).data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, booking_id):
         try:
             booking = Booking.objects.get(
                 Q(client=request.user) | Q(expert__user=request.user),
@@ -95,12 +140,22 @@ class ConsultationDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        serializer = BookingUpdateSerializer(booking, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(BookingDetailSerializer(booking).data, status=status.HTTP_200_OK)
+        is_expired = booking.scheduled_end <= timezone.now()
+        is_removable = booking.status in {"cancelled", "completed", "pending_payment"} or is_expired
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if not is_removable:
+            return Response(
+                {
+                    "error": {
+                        "code": "CANNOT_DELETE",
+                        "message": "Only cancelled or expired bookings can be removed.",
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        booking.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SessionFileUploadUrlView(APIView):
@@ -186,6 +241,22 @@ class SessionFileListCreateView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        uploaded_file = request.FILES.get("file")
+        if uploaded_file:
+            s3_key = default_storage.save(
+                f"sessions/{booking.id}/{uuid.uuid4()}-{uploaded_file.name}",
+                uploaded_file,
+            )
+            session_file = SessionFile.objects.create(
+                booking=booking,
+                uploader=request.user,
+                file_name=uploaded_file.name,
+                file_size=uploaded_file.size,
+                mime_type=uploaded_file.content_type or "application/octet-stream",
+                s3_key=s3_key,
+            )
+            return Response(SessionFileSerializer(session_file).data, status=status.HTTP_201_CREATED)
+
         serializer = SessionFileSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(booking=booking, uploader=request.user)
@@ -215,6 +286,12 @@ class SessionFileDownloadUrlView(APIView):
             return Response(
                 {"error": {"code": "NOT_FOUND", "message": "File not found or access restricted."}},
                 status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if settings.DEBUG and not os.getenv("AWS_STORAGE_BUCKET_NAME"):
+            return Response(
+                {"download_url": request.build_absolute_uri(default_storage.url(session_file.s3_key))},
+                status=status.HTTP_200_OK,
             )
 
         storage_service = S3StorageService()
