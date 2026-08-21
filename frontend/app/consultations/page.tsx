@@ -36,31 +36,31 @@ export default function ConsultationsDashboardPage() {
     switch (status) {
       case 'escrowed':
         return (
-          <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
             Escrowed
           </span>
         );
       case 'pending_payment':
         return (
-          <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20">
             Pending Payment
           </span>
         );
       case 'completed':
         return (
-          <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+          <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/20">
             Completed
           </span>
         );
       case 'cancelled':
         return (
-          <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-red-50 text-red-700 border border-red-200">
+          <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20">
             Cancelled
           </span>
         );
       default:
         return (
-          <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">
+          <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-muted text-muted-foreground">
             {status}
           </span>
         );
@@ -79,20 +79,20 @@ export default function ConsultationsDashboardPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-background py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+            <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
               My Consultations
             </h1>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-muted-foreground">
               Manage your upcoming, active, and completed micro-advisory sessions.
             </p>
           </div>
           <Link
             href="/experts"
-            className="px-4 py-2 bg-purple-900 hover:bg-purple-800 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+            className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-lg transition-colors shadow-sm"
           >
             + Book New Session
           </Link>
@@ -103,22 +103,22 @@ export default function ConsultationsDashboardPage() {
             {[1, 2].map((n) => (
               <div
                 key={n}
-                className="bg-white rounded-xl border border-gray-200 p-6 h-28 animate-pulse"
+                className="bg-card rounded-xl border border-border p-6 h-28 animate-pulse"
               />
             ))}
           </div>
         ) : error ? (
-          <div className="p-4 bg-red-50 text-red-700 rounded-lg text-sm border border-red-200">
+          <div className="p-4 bg-destructive/10 text-destructive rounded-lg text-sm border border-destructive/20">
             {error}
           </div>
         ) : bookings.length === 0 ? (
-          <div className="text-center p-12 bg-white rounded-xl border border-gray-200 shadow-sm space-y-4">
-            <p className="text-gray-500 text-sm">
+          <div className="text-center p-12 bg-card rounded-xl border border-border shadow-sm space-y-4">
+            <p className="text-muted-foreground text-sm">
               You have no consultation reservations yet.
             </p>
             <Link
               href="/experts"
-              className="inline-block px-4 py-2 bg-purple-900 text-white text-xs font-semibold rounded-lg hover:bg-purple-800 transition-colors"
+              className="inline-block px-4 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-lg hover:bg-primary/90 transition-colors"
             >
               Browse Expert Directory
             </Link>
@@ -128,30 +128,30 @@ export default function ConsultationsDashboardPage() {
             {bookings.map((b) => (
               <div
                 key={b.id}
-                className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-4"
+                className="bg-card rounded-xl border border-border p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-4"
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-3">
-                    <h3 className="text-base font-bold text-gray-900">
+                    <h3 className="text-base font-bold text-foreground">
                       {b.expert_name || 'Legal Advisor'}
                     </h3>
                     {getStatusBadge(b.status)}
                   </div>
-                  <p className="text-xs font-medium text-purple-900">
+                  <p className="text-xs font-medium text-primary">
                     {b.expert_title}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-muted-foreground">
                     Scheduled: {new Date(b.scheduled_start).toLocaleString()} •{' '}
                     {getChannelIcon(b.channel)}
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between md:justify-end gap-6 pt-3 md:pt-0 border-t md:border-t-0 border-gray-100">
+                <div className="flex items-center justify-between md:justify-end gap-6 pt-3 md:pt-0 border-t md:border-t-0 border-border">
                   <div className="text-left md:text-right">
-                    <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold block">
+                    <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold block">
                       Locked Rate
                     </span>
-                    <span className="text-base font-bold text-gray-900">
+                    <span className="text-base font-bold text-foreground">
                       {parseFloat(b.rate_snapshot).toLocaleString()} ETB
                     </span>
                   </div>

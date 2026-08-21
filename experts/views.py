@@ -27,13 +27,9 @@ class ExpertProfileView(APIView):
         expert, _ = Expert.objects.get_or_create(user=request.user)
         serializer = ExpertProfileSerializer(expert, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()
-
-            # Automatically move from unverified to pending when they submit their profile
             if expert.verification_status == "unverified":
                 expert.verification_status = "pending"
-                expert.save(update_fields=["verification_status"])
-
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -67,6 +63,10 @@ class ExpertListView(APIView):
     def get(self, request):
         # Always filter to return strictly verified experts
         queryset = Expert.objects.filter(verification_status="verified")
+
+        # Experts should not book themselves through the public directory.
+        if request.user.is_authenticated:
+            queryset = queryset.exclude(user_id=request.user.id)
 
         # 1. Filter by specialty tag (uses GIN Index)
         tag = request.query_params.get("tag")

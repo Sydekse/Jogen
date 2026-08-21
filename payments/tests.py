@@ -47,7 +47,7 @@ class TestChapaEscrowEngine:
         }
 
         payload = {"booking_id": str(self.booking.id)}
-        res = self.client.post("/api/v1/payments/initialize", payload, format="json")
+        res = self.client.post("/api/v1/payments/initialize/", payload, format="json")
 
         assert res.status_code == status.HTTP_201_CREATED
         assert "checkout_url" in res.data
@@ -65,7 +65,7 @@ class TestChapaEscrowEngine:
         )
 
         res = self.client.post(
-            "/api/v1/payments/webhook",
+            "/api/v1/payments/webhook/",
             {"tx_ref": "JOGEN-ESCROW-TEST12345"},
             format="json",
         )
@@ -117,7 +117,7 @@ class TestWalletAndDropCallEscrow:
             "wallet_provider": "telebirr",
             "wallet_account_number": "+251911998877",
         }
-        res = self.client.post("/api/v1/payments/wallet", payload, format="json")
+        res = self.client.post("/api/v1/payments/wallet/", payload, format="json")
 
         assert res.status_code == status.HTTP_200_OK
         assert res.data["status"] == "verified_and_linked"
@@ -131,7 +131,7 @@ class TestWalletAndDropCallEscrow:
             "wallet_provider": "telebirr",
             "wallet_account_number": "+251911998877",
         }
-        res = self.client.post("/api/v1/payments/wallet", payload, format="json")
+        res = self.client.post("/api/v1/payments/wallet/", payload, format="json")
         assert res.status_code == status.HTTP_403_FORBIDDEN
 
     @patch("payments.chapa_service.ChapaService.refund_client")
@@ -140,7 +140,7 @@ class TestWalletAndDropCallEscrow:
 
         self.client.force_authenticate(user=self.client_user)
         res = self.client.post(
-            f"/api/v1/payments/{self.booking.id}/session-end",
+            f"/api/v1/payments/{self.booking.id}/session-end/",
             {"duration_seconds": 60},  # 60 seconds (< 120s grace period)
             format="json",
         )
@@ -162,7 +162,7 @@ class TestWalletAndDropCallEscrow:
 
         self.client.force_authenticate(user=self.client_user)
         res = self.client.post(
-            f"/api/v1/payments/{self.booking.id}/session-end",
+            f"/api/v1/payments/{self.booking.id}/session-end/",
             {"duration_seconds": 900},  # 15 minutes (900s)
             format="json",
         )
@@ -171,7 +171,7 @@ class TestWalletAndDropCallEscrow:
         assert res.data["decision"] == "prorated_adjustment"
         assert res.data["gross_earned"] == "500.00"
         assert res.data["client_refund"] == "500.00"
-        assert res.data["expert_payout"] == "450.00"
+        assert res.data["expert_payout"] == "487.50"
 
         self.escrow_tx.refresh_from_db()
         self.booking.refresh_from_db()
@@ -184,7 +184,7 @@ class TestWalletAndDropCallEscrow:
 
         self.client.force_authenticate(user=self.client_user)
         res = self.client.post(
-            f"/api/v1/payments/{self.booking.id}/session-end",
+            f"/api/v1/payments/{self.booking.id}/session-end/",
             {"duration_seconds": 1680},  # 28 minutes (>= 1620s threshold)
             format="json",
         )
@@ -192,8 +192,8 @@ class TestWalletAndDropCallEscrow:
         assert res.status_code == status.HTTP_200_OK
         assert res.data["decision"] == "full_completion"
         assert res.data["client_refund"] == "0.00"
-        assert res.data["platform_fee"] == "100.00"
-        assert res.data["expert_payout"] == "900.00"
+        assert res.data["platform_fee"] == "25.00"
+        assert res.data["expert_payout"] == "975.00"
 
         self.escrow_tx.refresh_from_db()
         self.booking.refresh_from_db()
@@ -214,8 +214,8 @@ class TestPrecisionEscrowCalculator:
         assert res.decision == "prorated_adjustment"
         assert res.gross_earned == Decimal("176.37")
         assert res.client_refund == Decimal("574.13")
-        assert res.platform_fee == Decimal("17.64")
-        assert res.expert_payout == Decimal("158.73")
+        assert res.platform_fee == Decimal("4.41")
+        assert res.expert_payout == Decimal("171.96")
 
         # Invariant check
         assert res.client_refund + res.expert_payout + res.platform_fee == Decimal("750.50")

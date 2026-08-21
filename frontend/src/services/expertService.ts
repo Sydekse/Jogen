@@ -1,11 +1,10 @@
 import { fetchWithAuth } from '@/src/lib/apiClient';
 import { ExpertListItem, ExpertDetail } from '@/src/types/expert';
-
-const API_BASE_URL = 'http://localhost:8000/api/v1/experts';
+import { API_BASE_URL } from '@/src/config/api';
 
 export const expertService = {
   getExperts: async (params?: { search?: string, tag?: string, max_rate?: string }): Promise<ExpertListItem[]> => {
-    let url = `${API_BASE_URL}/`;
+    let url = `${API_BASE_URL}/experts/`;
     if (params) {
       const queryParams = new URLSearchParams();
       if (params.search) queryParams.append('search', params.search);
@@ -25,7 +24,7 @@ export const expertService = {
   },
 
   getExpertDetail: async (id: string): Promise<ExpertDetail> => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/${id}`);
+    const response = await fetchWithAuth(`${API_BASE_URL}/experts/${id}/`);
     if (!response.ok) {
       throw new Error(`Failed to fetch expert detail: ${response.status}`);
     }

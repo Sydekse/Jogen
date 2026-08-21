@@ -22,15 +22,20 @@ class PrecisionEscrowCalculator:
     SESSION_STANDARD_SECONDS = 1800  # 30 Minutes
     GRACE_PERIOD_SECONDS = 120       # 2 Minutes (Connection Drop Grace)
     COMPLETION_THRESHOLD_SECONDS = 1620  # 27 Minutes (90% completion = 100% payout)
-    PLATFORM_FEE_RATE = Decimal("0.10")  # 10% Platform Fee
+    PLATFORM_FEE_RATE = Decimal("0.025")  # 2.5% Platform Fee
 
     @classmethod
-    def calculate(cls, total_deposit: Decimal, duration_seconds: int) -> EscrowCalculationResult:
+    def calculate(
+        cls, total_deposit: Decimal, duration_seconds: int, scheduled_seconds: int = 1800
+    ) -> EscrowCalculationResult:
         """
         Computes the exact escrow split with penny-level precision.
+        Prorates based on scheduled_seconds for non-standard duration sessions.
         """
         deposit = Decimal(str(total_deposit))
         duration = max(0, duration_seconds)
+        target_scheduled = max(60, scheduled_seconds)
+        completion_threshold = int(0.9 * target_scheduled)
 
         # 1. Tier 1: Immediate Drop / Grace Period (0 - 120s)
         if duration < cls.GRACE_PERIOD_SECONDS:
@@ -44,8 +49,8 @@ class PrecisionEscrowCalculator:
                 decision="grace_period_refund",
             )
 
-        # 2. Tier 3: Full Completion Threshold (1620s - 1800s+)
-        if duration >= cls.COMPLETION_THRESHOLD_SECONDS:
+        # 2. Tier 3: Full Completion Threshold (90%+ of scheduled duration)
+        if duration >= completion_threshold:
             platform_fee = (deposit * cls.PLATFORM_FEE_RATE).quantize(
                 Decimal("0.01"), rounding=ROUND_HALF_UP
             )
@@ -60,8 +65,8 @@ class PrecisionEscrowCalculator:
                 decision="full_completion",
             )
 
-        # 3. Tier 2: Linear Pro-Rata Fractional Billing (120s - 1619s)
-        duration_ratio = Decimal(duration) / Decimal(cls.SESSION_STANDARD_SECONDS)
+        # 3. Tier 2: Linear Pro-Rata Fractional Billing
+        duration_ratio = min(Decimal("1.0"), Decimal(duration) / Decimal(target_scheduled))
         gross_earned = (deposit * duration_ratio).quantize(
             Decimal("0.01"), rounding=ROUND_HALF_UP
         )

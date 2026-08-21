@@ -8,6 +8,9 @@ export interface ExpertListItem {
   specialty_tags: string[];
   rate_per_session: string; // Decimal string e.g. "800.00"
   verification_status: VerificationStatus;
+  average_rating?: number;
+  total_reviews?: number;
+  wallet_balance?: string;
 }
 
 export interface ExpertDetail extends ExpertListItem {

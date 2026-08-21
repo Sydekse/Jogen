@@ -80,7 +80,7 @@ class TestReviewsEngine:
         )
 
         res = self.client.patch(
-            f"/api/v1/reviews/{review.id}",
+            f"/api/v1/reviews/{review.id}/",
             {"rating": 5, "comment": "Updated comment"},
             format="json",
         )
@@ -98,7 +98,7 @@ class TestReviewsEngine:
         )
 
         # Unauthenticated request
-        res = self.client.get(f"/api/v1/reviews/expert/{self.expert.id}")
+        res = self.client.get(f"/api/v1/reviews/expert/{self.expert.id}/")
 
         assert res.status_code == status.HTTP_200_OK
         data = res.data["results"] if "results" in res.data else res.data

@@ -33,7 +33,7 @@ function StarRating({ rating, size = "sm" }: { rating: number; size?: "sm" | "md
 }
 
 function generateSlots(timeRanges: string[]) {
-  const slots: string[] = [];
+  const slots = new Set<string>();
   for (const range of timeRanges) {
     const [start, end] = range.split('-');
     if (!start || !end) continue;
@@ -60,13 +60,13 @@ function generateSlots(timeRanges: string[]) {
         return `${displayH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ${ampm}`;
       };
 
-      slots.push(formatTime(currentH, currentM));
+      slots.add(formatTime(currentH, currentM));
 
       currentH = nextH;
       currentM = nextM;
     }
   }
-  return slots;
+  return [...slots];
 }
 
 export function ExpertProfile({ expertId }: { expertId: string }) {
@@ -134,7 +134,7 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
   // Financial Calculations
   const perMinuteRate = Math.round(Number(expert.rate_per_session) / 30); // Assuming rate_per_session in DB is for 30 mins
   const total = perMinuteRate * duration;
-  const platformFee = Math.round(total * 0.1);
+  const platformFee = Math.round(total * 0.025);
 
   const handleBook = () => {
     if (!selectedSlot) return;
@@ -301,7 +301,7 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
               {/* Summary */}
               <div className="bg-muted/70 rounded-xl p-3.5 mb-4 space-y-2">
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">{perMinuteRate} ETB × {duration} min</span><span className="font-semibold text-foreground">{total} ETB</span></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Platform fee (10%)</span><span className="font-semibold text-foreground">{platformFee} ETB</span></div>
+                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Platform fee (2.5%)</span><span className="font-semibold text-foreground">{platformFee} ETB</span></div>
                 <div className="flex justify-between text-sm pt-2 border-t border-border font-bold"><span className="text-foreground">Total Escrow</span><span className="text-foreground">{(total + platformFee).toLocaleString()} ETB</span></div>
               </div>
 
@@ -337,6 +337,7 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
           selectedDay={selectedDay}
           selectedSlot={selectedSlot!}
           duration={duration}
+          initialChannel={mode === "text" ? "chat" : mode}
           onClose={() => setShowCheckout(false)}
           onSuccess={() => {
             setShowCheckout(false);

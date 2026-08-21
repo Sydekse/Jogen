@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { User, Briefcase, FileUp, Save, LogOut, Camera, X } from "lucide-react";
 import { useModal } from "@/src/context/ModalContext";
+import { API_BASE_URL } from "@/src/config/api";
 
 export function ProfileScreen({ isExpert, setIsExpert, onLogout, userProfile, onProfileUpdate }: {
   isExpert: boolean;
@@ -89,7 +90,7 @@ export function ProfileScreen({ isExpert, setIsExpert, onLogout, userProfile, on
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/profile/update/', {
+      const response = await fetch(`${API_BASE_URL}/auth/profile/update/`, {
         method: 'PATCH',
         headers: {
           // DO NOT include Content-Type. The browser sets it automatically for FormData.
@@ -141,7 +142,7 @@ export function ProfileScreen({ isExpert, setIsExpert, onLogout, userProfile, on
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/experts/profile', {
+      const response = await fetch(`${API_BASE_URL}/experts/profile`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -311,7 +312,7 @@ export function ProfileScreen({ isExpert, setIsExpert, onLogout, userProfile, on
                 Your application to become an expert has been submitted and is currently under review by our compliance team. You will be notified once a decision is made.
               </p>
             </div>
-          ) : (
+          ) : !isExpert ? (
             <>
               {isRejected && !dismissedBanners['rejected'] && (
                 <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 rounded-2xl p-6 mb-6 relative">
@@ -388,8 +389,8 @@ export function ProfileScreen({ isExpert, setIsExpert, onLogout, userProfile, on
                   </div>
                 </div>
               </div>
-            </>
-          )}
+            </>) : null
+          }
         </div>
       </div>
     </div>

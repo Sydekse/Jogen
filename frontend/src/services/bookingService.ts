@@ -1,7 +1,6 @@
 import { BookingCreatePayload, BookingDetail } from '@/src/types/booking';
 import { fetchWithAuth } from '@/src/lib/apiClient';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+import { API_BASE_URL } from '@/src/config/api';
 
 export const bookingService = {
   /**
@@ -56,5 +55,20 @@ export const bookingService = {
     }
 
     return res.json();
+  },
+
+  /**
+   * Delete a cancelled or expired booking (DELETE /api/v1/consultations/{id}/)
+   */
+  async deleteBooking(bookingId: string, token: string): Promise<void> {
+    const res = await fetchWithAuth(`${API_BASE_URL}/consultations/${bookingId}/`, {
+      method: 'DELETE',
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      const message = errorData.error?.message || 'Failed to remove booking.';
+      throw new Error(message);
+    }
   },
 };

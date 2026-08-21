@@ -42,6 +42,9 @@ class Expert(models.Model):
         help_text="e.g. ['tax', 'startup_law', 'commercial_code']",
     )
     rate_per_session = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    wallet_balance = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0.00, help_text="Accumulated net payout earnings"
+    )
     verification_status = models.CharField(
         max_length=20, choices=VERIFICATION_CHOICES, default="unverified"
     )

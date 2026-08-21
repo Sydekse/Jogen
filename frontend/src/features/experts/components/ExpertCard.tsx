@@ -50,8 +50,8 @@ export const ExpertCard: React.FC<ExpertCardProps> = ({ expert, onTagClick, onVi
             </div>
             <p className="text-xs text-muted-foreground mt-0.5 truncate">{expert.title}</p>
             <div className="flex items-center gap-2 mt-1.5">
-              <StarRating rating={4.8} /> {/* Note: Assuming 4.8 as fallback if not in API */}
-              <span className="text-xs text-muted-foreground">(42)</span>
+              <StarRating rating={expert.average_rating || 0} />
+              <span className="text-xs text-muted-foreground">({expert.total_reviews || 0})</span>
             </div>
           </div>
         </div>

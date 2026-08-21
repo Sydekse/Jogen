@@ -150,7 +150,7 @@ export function Sidebar({
                                handleDeleteSession(session.id);
                             }
                           }}
-                          className="p-1 hover:bg-rose-100 rounded text-muted-foreground hover:text-rose-600"
+                          className="p-1 hover:bg-rose-500/10 rounded text-muted-foreground hover:text-rose-500"
                           title="Delete"
                         >
                           <Trash2 className="w-3 h-3" />

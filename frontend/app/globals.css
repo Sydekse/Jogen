@@ -44,6 +44,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: #1E1628;
   --foreground: #F2EEF8;
   --card: #271E36;
@@ -182,6 +183,23 @@
     font-size: var(--text-base);
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
+  }
+
+  select,
+  input,
+  textarea {
+    color: var(--foreground);
+    background-color: var(--input-background);
+  }
+
+  option {
+    color: var(--foreground);
+    background-color: var(--card);
+  }
+
+  ::placeholder {
+    color: var(--muted-foreground);
+    opacity: 0.8;
   }
 }
 

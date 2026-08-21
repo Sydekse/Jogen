@@ -27,6 +27,8 @@ class BookingDetailSerializer(serializers.ModelSerializer):
     client_name = serializers.CharField(source="client.full_name", read_only=True)
     expert_title = serializers.CharField(source="expert.title", read_only=True)
     expert_name = serializers.CharField(source="expert.user.full_name", read_only=True)
+    has_review = serializers.SerializerMethodField()
+    settlement = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -43,8 +45,22 @@ class BookingDetailSerializer(serializers.ModelSerializer):
             "scheduled_end",
             "rate_snapshot",
             "cancellation_reason",
+            "has_review",
+            "settlement",
             "created_at",
         ]
+
+    def get_has_review(self, obj):
+        return hasattr(obj, "review")
+
+    def get_settlement(self, obj):
+        if (
+            hasattr(obj, "escrow_transaction")
+            and obj.escrow_transaction
+            and obj.escrow_transaction.raw_provider_response
+        ):
+            return obj.escrow_transaction.raw_provider_response.get("settlement")
+        return None
 
 
 class PresignedUploadRequestSerializer(serializers.Serializer):

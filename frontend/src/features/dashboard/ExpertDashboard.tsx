@@ -6,6 +6,7 @@ import { BookingDetail } from '@/src/types/booking';
 import { useUser } from '@/src/context/UserContext';
 import { useModal } from "@/src/context/ModalContext";
 import { fetchWithAuth } from '@/src/lib/apiClient';
+import { API_BASE_URL } from '@/src/config/api';
 
 export function ExpertDashboard() {
   const { userProfile, refreshProfile } = useUser();
@@ -19,11 +20,37 @@ export function ExpertDashboard() {
   const [specialtyTags, setSpecialtyTags] = useState<string[]>(expertDataObj.specialty_tags || []);
   const [updatingConfig, setUpdatingConfig] = useState(false);
 
+  const normalizeAvailability = (value: Record<string, string[]>): Record<string, string[]> => {
+    const normalized: Record<string, string[]> = {};
+    Object.entries(value || {}).forEach(([day, ranges]) => {
+      const slots = new Set<string>();
+      (ranges || []).forEach((range) => {
+        const [start, end] = range.split('-');
+        if (!start || !end) return;
+        const [startHour, startMinute] = start.split(':').map(Number);
+        const [endHour, endMinute] = end.split(':').map(Number);
+        let cursor = startHour * 60 + startMinute;
+        const finish = endHour * 60 + endMinute;
+        while (cursor < finish) {
+          const next = Math.min(cursor + 30, finish);
+          const hour = Math.floor(cursor / 60);
+          const minute = cursor % 60;
+          const nextHour = Math.floor(next / 60);
+          const nextMinute = next % 60;
+          slots.add(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}-${nextHour.toString().padStart(2, '0')}:${nextMinute.toString().padStart(2, '0')}`);
+          cursor = next;
+        }
+      });
+      normalized[day] = [...slots].sort();
+    });
+    return normalized;
+  };
+
   useEffect(() => {
     if (userProfile?.expert_data) {
       const expert = userProfile.expert_data as any;
       if (expert.rate) setRate(expert.rate);
-      if (expert.availability) setAvailability(expert.availability);
+      if (expert.availability) setAvailability(normalizeAvailability(expert.availability));
       if (expert.specialty_tags) setSpecialtyTags(expert.specialty_tags);
     }
   }, [userProfile]);
@@ -32,7 +59,7 @@ export function ExpertDashboard() {
     setUpdatingConfig(true);
     const token = localStorage.getItem('access_token');
     try {
-      const resProfile = await fetchWithAuth('http://localhost:8000/api/v1/experts/profile', {
+      const resProfile = await fetchWithAuth(`${API_BASE_URL}/experts/profile`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -44,13 +71,13 @@ export function ExpertDashboard() {
         })
       });
       
-      const resAvailability = await fetchWithAuth('http://localhost:8000/api/v1/experts/availability', {
+      const resAvailability = await fetchWithAuth(`${API_BASE_URL}/experts/availability`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ availability })
+        body: JSON.stringify({ availability: normalizeAvailability(availability) })
       });
 
       if (resProfile.ok && resAvailability.ok) {
@@ -68,29 +95,25 @@ export function ExpertDashboard() {
 
   // toggleDay is no longer needed since we handle it directly in the UI map
 
-  const WEEK_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri'];
-  const TIME_SLOTS = ["09:00 AM", "11:00 AM", "01:00 PM", "03:00 PM", "05:00 PM"];
+  const WEEK_DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const TIME_SLOTS = Array.from({ length: 25 }, (_, index) => {
+    const totalMinutes = 8 * 60 + index * 30;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    const displayHour = hours % 12 || 12;
+    return `${displayHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${hours >= 12 ? 'PM' : 'AM'}`;
+  });
 
   const slotToRange = (slot: string) => {
-    const map: Record<string, string> = {
-      "09:00 AM": "09:00-11:00",
-      "11:00 AM": "11:00-13:00",
-      "01:00 PM": "13:00-15:00",
-      "03:00 PM": "15:00-17:00",
-      "05:00 PM": "17:00-19:00",
-    };
-    return map[slot] || "09:00-11:00";
-  };
-
-  const rangeToSlot = (range: string) => {
-    const reverseMap: Record<string, string> = {
-      "09:00-11:00": "09:00 AM",
-      "11:00-13:00": "11:00 AM",
-      "13:00-15:00": "01:00 PM",
-      "15:00-17:00": "03:00 PM",
-      "17:00-19:00": "05:00 PM",
-    };
-    return reverseMap[range];
+    const [time, meridiem] = slot.split(' ');
+    const [hourText, minuteText] = time.split(':');
+    let hours = Number(hourText);
+    const minutes = Number(minuteText);
+    if (meridiem === 'PM' && hours !== 12) hours += 12;
+    if (meridiem === 'AM' && hours === 12) hours = 0;
+    const endMinutes = hours * 60 + minutes + 30;
+    const endHours = Math.floor(endMinutes / 60);
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}-${endHours.toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
   };
 
   const toggleSlot = (day: string, slot: string) => {
@@ -131,24 +154,28 @@ export function ExpertDashboard() {
   }, []);
 
   const calculateStats = () => {
-    let totalEarnings = 0;
+    let totalEarnings = expertDataObj.wallet_balance ? parseFloat(expertDataObj.wallet_balance) : 0;
     let activeSessions = 0;
     let pendingRequests = 0;
 
     bookings.forEach(b => {
-      if (b.status === 'completed') {
-        totalEarnings += parseFloat(b.rate_snapshot || '0');
-      }
-      if (b.status === 'escrowed' || b.status === 'pending_payment') {
-        activeSessions++;
-      }
-      if (b.status === 'pending_payment') {
-        pendingRequests++;
+      const isUserExpert = userProfile?.phone_number && b.client_phone !== userProfile.phone_number;
+      if (isUserExpert) {
+        if (!expertDataObj.wallet_balance && b.status === 'completed') {
+          // Net 97.5% expert payout after 2.5% platform fee
+          totalEarnings += parseFloat(b.rate_snapshot || '0') * 0.975;
+        }
+        if (b.status === 'escrowed' || b.status === 'pending_payment') {
+          activeSessions++;
+        }
+        if (b.status === 'pending_payment') {
+          pendingRequests++;
+        }
       }
     });
 
     return [
-      { title: "Total Earnings", value: `${totalEarnings.toLocaleString()} ETB`, icon: DollarSign, trend: "+0%" },
+      { title: "Total Earnings", value: `${Math.round(totalEarnings).toLocaleString()} ETB`, icon: DollarSign, trend: "+0%" },
       { title: "Active Sessions", value: activeSessions.toString(), icon: Users, trend: "+0" },
       { title: "Pending Requests", value: pendingRequests.toString(), icon: Clock, trend: "+0" },
       { title: "Profile Views", value: "N/A", icon: BarChart3, trend: "0%" },
@@ -182,9 +209,9 @@ export function ExpertDashboard() {
                 <stat.icon className="w-5 h-5 text-primary" />
               </div>
               <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                stat.trend.startsWith('+') ? 'bg-emerald-500/10 text-emerald-600' : 
+                stat.trend.startsWith('+') ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 
                 stat.trend === '0%' || stat.trend === '+0' || stat.trend === '+0%' ? 'bg-muted text-muted-foreground' : 
-                'bg-rose-500/10 text-rose-600'
+                'bg-rose-500/10 text-rose-600 dark:text-rose-400'
               }`}>
                 {stat.trend}
               </span>
@@ -266,7 +293,7 @@ export function ExpertDashboard() {
                   + Add Exception
                 </button>
               </div>
-              <div className="grid grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
                 {WEEK_DAYS.map((day) => (
                   <div key={day}>
                     <p className="text-xs font-bold text-center text-muted-foreground mb-2 uppercase tracking-wide">
@@ -305,7 +332,10 @@ export function ExpertDashboard() {
         </div>
 
         {/* New Wallet Linking Card */}
-        <WalletLinkingCard />
+        <WalletLinkingCard
+          walletProvider={expertDataObj.wallet_provider}
+          walletAccountNumber={expertDataObj.wallet_account_number}
+        />
       </div>
     </div>
   );

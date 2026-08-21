@@ -11,6 +11,7 @@ interface BookingCheckoutModalProps {
   selectedDay: string;
   selectedSlot: string; // e.g. "09:00 AM"
   duration: number;
+  initialChannel: BookingChannel;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -20,12 +21,15 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
   selectedDay,
   selectedSlot,
   duration,
+  initialChannel,
   onClose,
   onSuccess,
 }) => {
-  const [channel, setChannel] = useState<BookingChannel>('voice');
+  const [channel, setChannel] = useState<BookingChannel>(initialChannel);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => setChannel(initialChannel), [initialChannel]);
 
   // Derive start and end Datetime objects
   const parseTimes = () => {
@@ -118,44 +122,44 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
 
   const perMinuteRate = Math.round(parseFloat(expert.rate_per_session) / 30) || 0;
   const rate = perMinuteRate * duration;
-  const platformFee = rate * 0.1; // 10% platform fee
+  const platformFee = rate * 0.025;
   const totalETB = rate + platformFee;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-xl max-w-lg w-full p-6 space-y-6 animate-in fade-in zoom-in-95">
+      <div className="bg-card rounded-2xl border border-border shadow-xl max-w-lg w-full p-6 space-y-6 animate-in fade-in zoom-in-95">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+        <div className="flex items-center justify-between border-b border-border pb-4">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">
+            <h2 className="text-xl font-bold text-foreground">
               Confirm Advisory Reservation
             </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Review details and select consultation channel
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-lg font-bold"
+            className="text-muted-foreground hover:text-foreground text-lg font-bold"
           >
             ✕
           </button>
         </div>
 
         {error && (
-          <div className="p-3 bg-red-50 text-red-700 text-xs font-medium rounded-lg border border-red-200">
+          <div className="p-3 bg-destructive/10 text-destructive text-xs font-medium rounded-lg border border-destructive/20">
             {error}
           </div>
         )}
 
         {/* Expert & Time Summary */}
-        <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 space-y-2">
+        <div className="bg-primary/10 p-4 rounded-xl border border-primary/20 space-y-2">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm font-bold text-gray-900">{expert.full_name}</p>
-              <p className="text-xs text-purple-900 font-medium">{expert.title}</p>
+              <p className="text-sm font-bold text-foreground">{expert.full_name}</p>
+              <p className="text-xs text-primary font-medium">{expert.title}</p>
             </div>
-            <span className="text-xs font-semibold px-2 py-0.5 bg-purple-100 text-purple-900 rounded-md">
+              <span className="text-xs font-semibold px-2 py-0.5 bg-primary/15 text-primary rounded-md">
               {selectedDay.toUpperCase()} ({selectedSlot})
             </span>
           </div>
@@ -163,7 +167,7 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
 
         {/* Consultation Channel Options */}
         <div className="space-y-2">
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
             Select Channel
           </label>
           <div className="grid grid-cols-3 gap-3">
@@ -178,8 +182,8 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
                 onClick={() => setChannel(c.key as BookingChannel)}
                 className={`py-3 px-2 text-xs font-bold rounded-xl border text-center transition-colors ${
                   channel === c.key
-                    ? 'border-purple-900 bg-purple-900 text-white shadow-sm'
-                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                    ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                    : 'border-border bg-muted text-foreground hover:border-primary/50'
                 }`}
               >
                 {c.label}
@@ -189,18 +193,18 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
         </div>
 
         {/* Price Breakdown */}
-        <div className="border-t border-gray-100 pt-4 space-y-2 text-xs text-gray-600">
+        <div className="border-t border-border pt-4 space-y-2 text-xs text-muted-foreground">
           <div className="flex justify-between">
             <span>Expert Rate ({duration}-min)</span>
             <span className="font-semibold">{rate.toLocaleString()} ETB</span>
           </div>
           <div className="flex justify-between">
-            <span>Platform Service Fee (10%)</span>
+            <span>Platform Service Fee (2.5%)</span>
             <span className="font-semibold">{platformFee.toLocaleString()} ETB</span>
           </div>
-          <div className="flex justify-between text-sm font-bold text-gray-900 pt-2 border-t border-gray-100">
+          <div className="flex justify-between text-sm font-bold text-foreground pt-2 border-t border-border">
             <span>Total Escrow Amount</span>
-            <span className="text-purple-950">{totalETB.toLocaleString()} ETB</span>
+            <span className="text-primary">{totalETB.toLocaleString()} ETB</span>
           </div>
         </div>
 
@@ -209,7 +213,7 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors"
+            className="flex-1 py-3 bg-muted hover:bg-accent text-foreground text-xs font-bold rounded-xl transition-colors"
           >
             Cancel
           </button>
@@ -217,7 +221,7 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
             type="button"
             disabled={submitting}
             onClick={handleConfirmReservation}
-            className="flex-1 py-3 bg-purple-900 hover:bg-purple-800 disabled:bg-gray-300 text-white text-xs font-bold rounded-xl transition-colors shadow-sm"
+            className="flex-1 py-3 bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground text-xs font-bold rounded-xl transition-colors shadow-sm"
           >
             {submitting ? 'Reserving...' : 'Confirm & Reserve Slot'}
           </button>

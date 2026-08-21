@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { API_BASE_URL } from '@/src/config/api';
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
   const token = localStorage.getItem('access_token');
@@ -20,7 +20,7 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
     
     if (refreshToken) {
       try {
-        const refreshResponse = await fetch(`${API_BASE_URL}/api/v1/auth/token/refresh/`, {
+        const refreshResponse = await fetch(`${API_BASE_URL}/auth/token/refresh/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

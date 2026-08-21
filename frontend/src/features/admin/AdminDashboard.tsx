@@ -108,9 +108,9 @@ export function AdminDashboard() {
                 <p className="text-sm text-muted-foreground">{expert.title}</p>
                 <div className="mt-2">
                   <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                    expert.verification_status === 'verified' ? 'bg-emerald-100 text-emerald-700' :
-                    expert.verification_status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                    'bg-rose-100 text-rose-700'
+                    expert.verification_status === 'verified' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' :
+                    expert.verification_status === 'pending' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' :
+                    'bg-rose-500/15 text-rose-600 dark:text-rose-400'
                   }`}>
                     {expert.verification_status.toUpperCase()}
                   </span>
@@ -118,10 +118,10 @@ export function AdminDashboard() {
               </div>
               {expert.verification_status === 'pending' && (
                 <div className="flex gap-2">
-                  <button onClick={() => handleVerifyExpert(expert.id, 'rejected')} className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 text-sm font-bold rounded-xl transition-colors flex items-center gap-2">
+                  <button onClick={() => handleVerifyExpert(expert.id, 'rejected')} className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-sm font-bold rounded-xl transition-colors flex items-center gap-2">
                     <XCircle className="w-4 h-4" /> Reject
                   </button>
-                  <button onClick={() => handleVerifyExpert(expert.id, 'verified')} className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-sm font-bold rounded-xl transition-colors flex items-center gap-2">
+                  <button onClick={() => handleVerifyExpert(expert.id, 'verified')} className="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-sm font-bold rounded-xl transition-colors flex items-center gap-2">
                     <CheckCircle className="w-4 h-4" /> Approve
                   </button>
                 </div>
@@ -150,7 +150,7 @@ export function AdminDashboard() {
                 </div>
                 <div>
                   <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                    dispute.status === 'open' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'
+                    dispute.status === 'open' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'bg-muted text-muted-foreground'
                   }`}>
                     {dispute.status.toUpperCase()}
                   </span>

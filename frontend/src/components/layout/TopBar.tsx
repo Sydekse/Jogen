@@ -29,7 +29,9 @@ export function TopBar() {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   const unreadCount = notifications.filter(n => !n.is_read).length;

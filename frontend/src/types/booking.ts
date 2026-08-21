@@ -27,5 +27,12 @@ export interface BookingDetail {
   scheduled_end: string;
   rate_snapshot: string;
   cancellation_reason?: string;
+  has_review?: boolean;
+  settlement?: {
+    gross_earned: string;
+    client_refund: string;
+    duration_seconds: number;
+    decision: string;
+  } | null;
   created_at: string;
 }
