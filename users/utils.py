@@ -19,26 +19,22 @@ def send_sms(phone_number, otp_code):
     message = f"Your Jogen verification code is: {otp_code}. It expires in 5 minutes."
     api_key = os.getenv("SMS_GATEWAY_API_KEY")
 
-    if api_key:
-        try:
-            response = requests.post(
-                "https://smsethiopia.com/api/sms/send",
-                json={
-                    "msisdn": phone_number,
-                    "text": message,
-                },
-                headers={
-                    "KEY": api_key,
-                },
-                timeout=10,
-            )
-            response.raise_for_status()
-            logger.info("SMS gateway sent successfully: %s", response.text)
-        except requests.RequestException as exc:
-            logger.error("Failed to send SMS to %s via gateway: %s", phone_number, exc)
-    else:
-        logger.warning("SMS_GATEWAY_API_KEY not configured; skipping external SMS dispatch.")
-
+    try:
+        response = requests.post(
+            "https://smsethiopia.com/api/sms/send",
+            json={
+                "msisdn": phone_number,
+                "text": message,
+            },
+            headers={
+                "KEY": api_key,
+            }
+        )
+        response.raise_for_status()
+        logger.info("SMS gateway sent successfully: %s", response.text)
+    except requests.RequestException as exc:
+        logger.error("Failed to send SMS to %s via gateway: %s", phone_number, exc)
+    
     # Log to server stdout/logs (visible on Render Logs tab)
     print("\n" + "=" * 40)
     print("📱 OTP CODE GENERATED")
