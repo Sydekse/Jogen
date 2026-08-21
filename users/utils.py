@@ -1,8 +1,6 @@
 import logging
 import random
 
-from django.conf import settings
-
 logger = logging.getLogger(__name__)
 
 
@@ -15,7 +13,7 @@ def send_sms(phone_number, otp_code):
     """
     Sends SMS via provider if configured, and logs to output/server logs for verification.
     """
-    message = f"Your Jogen verification code is: {otp_code}. It expires in 5 minutes."
+    #message = f"Your Jogen verification code is: {otp_code}. It expires in 5 minutes."
     
     # Log to server stdout/logs (visible on Render Logs tab)
     print("\n" + "=" * 40)
