@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from django.db import transaction
 
@@ -36,13 +36,19 @@ class DisputeResolutionService:
             chapa = ChapaService()
             total_amount = escrow_tx.amount
 
+            base_amount = (total_amount / Decimal("1.0125")).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+
             if action == "full_refund":
                 chapa.refund_client(tx_ref=escrow_tx.tx_ref, amount=total_amount)
                 escrow_tx.status = "refunded"
                 booking.status = "cancelled"
 
             elif action == "full_release":
-                net_payout = total_amount * Decimal("0.90")
+                net_payout = (base_amount * Decimal("0.9875")).quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP
+                )
                 chapa.transfer_to_expert(
                     expert=booking.expert, amount=net_payout, tx_ref=escrow_tx.tx_ref
                 )
@@ -50,8 +56,15 @@ class DisputeResolutionService:
                 booking.status = "completed"
 
             elif action == "split_50_50":
-                client_refund = total_amount * Decimal("0.50")
-                expert_payout = total_amount * Decimal("0.50") * Decimal("0.90")
+                client_refund = (total_amount * Decimal("0.50")).quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP
+                )
+                expert_base = (base_amount * Decimal("0.50")).quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP
+                )
+                expert_payout = (expert_base * Decimal("0.9875")).quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP
+                )
 
                 chapa.refund_client(tx_ref=escrow_tx.tx_ref, amount=client_refund)
                 chapa.transfer_to_expert(

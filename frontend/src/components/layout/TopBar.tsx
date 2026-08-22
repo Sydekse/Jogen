@@ -42,9 +42,21 @@ export function TopBar() {
     if (!token) return;
     try {
       await notificationService.markAsRead(id, token);
-      setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: true } : n));
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
     } catch (err) {
-      console.error(err);
+      console.error("Failed to mark notification as read", err);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) return;
+    const unread = notifications.filter(n => !n.is_read);
+    try {
+      await Promise.all(unread.map(n => notificationService.markAsRead(n.id, token)));
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch (err) {
+      console.error("Failed to mark all as read", err);
     }
   };
   
@@ -64,8 +76,16 @@ export function TopBar() {
 
         {isOpen && (
           <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto bg-card border border-border rounded-xl shadow-lg z-50">
-            <div className="p-3 border-b border-border">
+            <div className="p-3 border-b border-border flex justify-between items-center">
               <h3 className="font-bold text-sm text-foreground">Notifications</h3>
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  className="text-[11px] font-semibold text-primary hover:underline"
+                >
+                  Mark all as read
+                </button>
+              )}
             </div>
             <div className="py-1">
               {notifications.length > 0 ? notifications.map(notif => (

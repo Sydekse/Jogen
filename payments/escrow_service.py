@@ -91,6 +91,8 @@ class EscrowService:
                 "duration_seconds": result.duration_seconds,
                 "gross_earned": str(result.gross_earned),
                 "client_refund": str(result.client_refund),
+                "client_platform_fee": str(result.client_platform_fee),
+                "expert_platform_fee": str(result.expert_platform_fee),
                 "platform_fee": str(result.platform_fee),
                 "expert_payout": str(result.expert_payout),
             }
@@ -104,6 +106,8 @@ class EscrowService:
             "total_deposit": str(result.total_deposit),
             "gross_earned": str(result.gross_earned),
             "client_refund": str(result.client_refund),
+            "client_platform_fee": str(result.client_platform_fee),
+            "expert_platform_fee": str(result.expert_platform_fee),
             "platform_fee": str(result.platform_fee),
             "expert_payout": str(result.expert_payout),
             "status": escrow_tx.status,
