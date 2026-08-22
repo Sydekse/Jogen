@@ -123,7 +123,7 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
 
   const perMinuteRate = Math.round(parseFloat(expert.rate_per_session) / 30) || 0;
   const rate = perMinuteRate * duration;
-  const platformFee = rate * 0.025;
+  const platformFee = rate * 0.0125;
   const totalETB = rate + platformFee;
 
   return (
@@ -200,7 +200,7 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
             <span className="font-semibold">{rate.toLocaleString()} ETB</span>
           </div>
           <div className="flex justify-between">
-            <span>Platform Service Fee (2.5%)</span>
+            <span>Platform Service Fee (1.25%)</span>
             <span className="font-semibold">{platformFee.toLocaleString()} ETB</span>
           </div>
           <div className="flex justify-between text-sm font-bold text-foreground pt-2 border-t border-border">

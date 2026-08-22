@@ -101,7 +101,7 @@ class TestAdminDisputeEngine:
         self.escrow_tx = EscrowTransaction.objects.create(
             booking=self.booking,
             tx_ref="JOGEN-ESCROW-DISPUTETEST",
-            amount=Decimal("1000.00"),
+            amount=Decimal("1012.50"),
             status="held",
         )
         self.dispute = Dispute.objects.create(

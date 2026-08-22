@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Clock, Video, Phone, MessageCircle, Hash, 
-  Timer, FileText, Star, X, Users, Trash2, Printer, CheckCircle 
+import {
+  Clock, Video, Phone, MessageCircle, Hash,
+  Timer, FileText, Star, X, Users, Trash2, Printer, CheckCircle
 } from 'lucide-react';
 import { useUser } from '@/src/context/UserContext';
 import { bookingService } from '@/src/services/bookingService';
@@ -27,6 +27,14 @@ function getInitials(name: string) {
   return name.trim() ? name.trim().split(/\s+/).map(n => n[0]).join('').substring(0, 2).toUpperCase() : "EX";
 }
 
+function formatCurrency(val?: number) {
+  if (val === undefined || val === null || isNaN(val)) return '0.00';
+  return Number(val).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 // --- Types ---
 type SessionMode = "voice" | "video" | "text";
 type UIStatus = "completed" | "upcoming" | "live" | "cancelled" | "expired";
@@ -42,6 +50,14 @@ interface Booking {
   mode: SessionMode; invoiceReady?: boolean; hasReview?: boolean;
   depositAmount?: number; clientRefund?: number; actualDuration?: number;
   settlementDecision?: string;
+  isClient: boolean;
+  baseRate: number;
+  totalDeposit: number;
+  grossEarned: number;
+  clientPlatformFee: number;
+  expertPlatformFee: number;
+  platformFee: number;
+  expertPayout: number;
 }
 
 export function MyBookings() {
@@ -72,12 +88,19 @@ export function MyBookings() {
           const start = new Date(b.scheduled_start);
           const end = new Date(b.scheduled_end);
           const duration = Math.round((end.getTime() - start.getTime()) / 60000);
-          const depositAmount = Math.round(parseFloat(b.rate_snapshot || "0"));
+          const baseRate = parseFloat(b.rate_snapshot || "0");
+          const defaultClientFee = baseRate * 0.0125;
+          const defaultTotalDeposit = baseRate + defaultClientFee;
 
-          const grossEarned = b.settlement?.gross_earned ? parseFloat(b.settlement.gross_earned) : null;
+          const totalDeposit = b.settlement?.total_deposit ? parseFloat(b.settlement.total_deposit) : defaultTotalDeposit;
+          const grossEarned = b.settlement?.gross_earned ? parseFloat(b.settlement.gross_earned) : baseRate;
           const clientRefund = b.settlement?.client_refund ? parseFloat(b.settlement.client_refund) : 0;
+          const clientPlatformFee = b.settlement?.client_platform_fee ? parseFloat(b.settlement.client_platform_fee) : defaultClientFee;
+          const expertPlatformFee = b.settlement?.expert_platform_fee ? parseFloat(b.settlement.expert_platform_fee) : (grossEarned * 0.0125);
+          const expertPayout = b.settlement?.expert_payout ? parseFloat(b.settlement.expert_payout) : (grossEarned - expertPlatformFee);
+          const platformFee = b.settlement?.platform_fee ? parseFloat(b.settlement.platform_fee) : (clientPlatformFee + expertPlatformFee);
           const actualDuration = b.settlement?.duration_seconds ? Math.round(b.settlement.duration_seconds / 60) : duration;
-          const finalAmount = grossEarned !== null ? Math.round(grossEarned) : depositAmount;
+          const finalAmount = grossEarned;
 
           let uiStatus: UIStatus = "upcoming";
           if (b.status === "completed") uiStatus = "completed";
@@ -92,7 +115,7 @@ export function MyBookings() {
           }
 
           const mode: SessionMode = b.channel === "chat" ? "text" : b.channel;
-          
+
           const isCurrentUserClient = userProfile?.phone_number === b.client_phone;
           const displayPartyName = isCurrentUserClient ? (b.expert_name || "Unknown Expert") : (b.client_name || "Client");
           const displayPartyTitle = isCurrentUserClient ? (b.expert_title || "Consultant") : "Client";
@@ -112,7 +135,7 @@ export function MyBookings() {
             scheduledTs: start.getTime(),
             duration,
             amount: finalAmount,
-            depositAmount,
+            depositAmount: baseRate,
             clientRefund,
             actualDuration,
             settlementDecision: b.settlement?.decision,
@@ -120,6 +143,14 @@ export function MyBookings() {
             mode,
             invoiceReady: uiStatus === "completed",
             hasReview: Boolean(b.has_review),
+            isClient: isCurrentUserClient,
+            baseRate,
+            totalDeposit,
+            grossEarned,
+            clientPlatformFee,
+            expertPlatformFee,
+            platformFee,
+            expertPayout,
           };
         });
         setBookings(mapped);
@@ -175,8 +206,8 @@ export function MyBookings() {
 
   const STATUS_META: Record<UIStatus, { label: string; dot: string; text: string }> = {
     completed: { label: "Completed", dot: "bg-emerald-500", text: "text-emerald-600 dark:text-emerald-400" },
-    upcoming:  { label: "Upcoming",  dot: "bg-blue-500",    text: "text-blue-600 dark:text-blue-400" },
-    live:      { label: "Live Now",  dot: "bg-red-500 animate-pulse", text: "text-red-600 dark:text-red-400" },
+    upcoming: { label: "Upcoming", dot: "bg-blue-500", text: "text-blue-600 dark:text-blue-400" },
+    live: { label: "Live Now", dot: "bg-red-500 animate-pulse", text: "text-red-600 dark:text-red-400" },
     cancelled: { label: "Cancelled", dot: "bg-muted-foreground", text: "text-muted-foreground" },
     expired: { label: "Session Expired", dot: "bg-amber-500", text: "text-amber-600 dark:text-amber-400" },
   };
@@ -204,7 +235,7 @@ export function MyBookings() {
   return (
     <div className="h-full overflow-y-auto bg-background">
       <div className="max-w-4xl mx-auto px-6 py-8">
-        
+
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-foreground">My Bookings</h1>
@@ -219,15 +250,15 @@ export function MyBookings() {
         {bookings.filter(canJoin).map(b => (
           <div key={`banner-${b.id}`} className="mb-5 rounded-2xl border-2 border-primary/40 bg-primary/5 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="flex items-center gap-4 flex-1">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0" style={{ backgroundColor: b.expert.color }}>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0" style={{ backgroundColor: b.expert.color }}>
                 {b.expert.initials}
-                </div>
-                <div className="flex-1 min-w-0">
+              </div>
+              <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-foreground">
-                    Your session with {b.expert.name} is ready to join
+                  Your session with {b.expert.name} is ready to join
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">{b.topic} · {b.scheduledTime} · {b.duration} min</p>
-                </div>
+              </div>
             </div>
             <button
               onClick={() => router.push(`/room/${b.id}`)}
@@ -241,8 +272,8 @@ export function MyBookings() {
         {/* Filter Tabs */}
         <div className="flex flex-wrap gap-1.5 mb-6 bg-muted/40 rounded-xl p-1 border border-border w-fit">
           {tabs.map(t => (
-            <button 
-              key={t.id} 
+            <button
+              key={t.id}
               onClick={() => setFilter(t.id)}
               className={cn("flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition-colors",
                 filter === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
@@ -277,7 +308,7 @@ export function MyBookings() {
                   joinable ? "border-primary/30 shadow-md" : "border-border hover:border-primary/20"
                 )}>
                   <div className="flex flex-col sm:flex-row items-start gap-5">
-                    
+
                     {/* Avatar */}
                     <div className="w-14 h-14 rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0" style={{ backgroundColor: b.expert.color }}>
                       {b.expert.initials}
@@ -293,9 +324,9 @@ export function MyBookings() {
                         {/* Status Badge */}
                         <div className={cn("flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border",
                           b.status === "completed" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400" :
-                          b.status === "upcoming"  ? "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400" :
-                          b.status === "live"      ? "bg-red-500/10 border-red-500/20 text-red-500" :
-                                                     "bg-muted border-border text-muted-foreground")}>
+                            b.status === "upcoming" ? "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400" :
+                              b.status === "live" ? "bg-red-500/10 border-red-500/20 text-red-500" :
+                                "bg-muted border-border text-muted-foreground")}>
                           <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", meta.dot)} />
                           {meta.label}
                         </div>
@@ -322,26 +353,29 @@ export function MyBookings() {
                       <div className="flex flex-wrap items-center justify-between mt-5 pt-4 border-t border-border gap-4">
                         <span className="text-sm font-bold text-foreground">
                           {b.status === "upcoming" && <span className="text-muted-foreground font-normal text-xs mr-1">Escrow held ·</span>}
-                          {b.amount.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">ETB</span>
+                          {b.isClient
+                            ? (b.status === "completed" ? formatCurrency(b.totalDeposit - (b.clientRefund || 0)) : formatCurrency(b.totalDeposit))
+                            : formatCurrency(b.expertPayout)
+                          } <span className="text-xs font-normal text-muted-foreground">ETB</span>
                         </span>
 
                         <div className="flex flex-wrap items-center gap-2">
                           {b.status === "completed" && (
-                            <button 
+                            <button
                               onClick={() => setSelectedInvoiceBooking(b)}
                               className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground border border-border px-4 py-2 rounded-lg transition-colors"
                             >
                               <FileText className="w-3.5 h-3.5" />Invoice
                             </button>
                           )}
-                          {b.status === "completed" && (
+                          {b.status === "completed" && b.isClient && (
                             b.hasReview ? (
                               <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-2 rounded-lg">
                                 <CheckCircle className="w-3.5 h-3.5" /> Reviewed
                               </span>
                             ) : (
-                              <button 
-                                onClick={() => router.push(`/bookings/${b.id}/review`)} 
+                              <button
+                                onClick={() => router.push(`/bookings/${b.id}/review`)}
                                 className="flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary/30 px-4 py-2 rounded-lg hover:bg-primary/5 transition-colors"
                               >
                                 <Star className="w-3.5 h-3.5" />Review
@@ -361,14 +395,14 @@ export function MyBookings() {
                             </button>
                           )}
                           {(b.status === "cancelled" || b.status === "expired") && (
-                            <button 
-                              onClick={() => handleDelete(b.id)} 
+                            <button
+                              onClick={() => handleDelete(b.id)}
                               className="flex items-center gap-1.5 text-xs font-semibold text-destructive border border-destructive/30 px-3.5 py-2 rounded-lg hover:bg-destructive/10 transition-colors"
                             >
                               <Trash2 className="w-3.5 h-3.5" />Remove
                             </button>
                           )}
-                          {b.status === "cancelled" && (
+                          {b.status === "cancelled" && b.isClient && (
                             <button onClick={() => router.push(`/experts/${b.expert.id}`)} className="flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary/30 px-4 py-2 rounded-lg hover:bg-primary/5 transition-colors">
                               Rebook
                             </button>
@@ -387,8 +421,8 @@ export function MyBookings() {
         <div className="mt-8 rounded-2xl border border-dashed border-border bg-card p-8 text-center">
           <p className="text-base font-bold text-foreground mb-1">Need another consultation?</p>
           <p className="text-sm text-muted-foreground mb-5">Browse verified experts across tax, corporate, FX, and IP law.</p>
-          <button 
-            onClick={() => router.push('/experts')} 
+          <button
+            onClick={() => router.push('/experts')}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-opacity"
           >
             <Users className="w-4 h-4" />Find an Expert
@@ -400,7 +434,7 @@ export function MyBookings() {
       {selectedInvoiceBooking && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-2xl max-w-lg w-full p-6 md:p-8 space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95">
-            <button 
+            <button
               onClick={() => setSelectedInvoiceBooking(null)}
               className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1"
             >
@@ -409,8 +443,14 @@ export function MyBookings() {
 
             <div className="border-b border-border pb-4 flex justify-between items-start">
               <div>
-                <h2 className="text-xl font-bold text-foreground">Consultation Invoice</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Official Service Receipt · Jogen Platform</p>
+                <h2 className="text-xl font-bold text-foreground">
+                  {selectedInvoiceBooking.isClient ? "Consultation Service Receipt" : "Consultation Payout Receipt"}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {selectedInvoiceBooking.isClient
+                    ? "Official Client Payment Receipt · Jogen Platform"
+                    : "Official Expert Earnings Statement · Jogen Platform"}
+                </p>
               </div>
               <div className="text-right">
                 <span className="text-xs font-mono font-bold text-primary block">
@@ -423,7 +463,9 @@ export function MyBookings() {
             <div className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-4 bg-muted/30 p-4 rounded-xl">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">Expert Advisor</p>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    {selectedInvoiceBooking.isClient ? "Expert Advisor" : "Client User"}
+                  </p>
                   <p className="font-bold text-foreground">{selectedInvoiceBooking.expert.name}</p>
                   <p className="text-xs text-muted-foreground">{selectedInvoiceBooking.expert.title}</p>
                 </div>
@@ -437,43 +479,67 @@ export function MyBookings() {
                 </div>
               </div>
 
-              <div className="border-t border-border pt-4 space-y-2">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Initial Escrow Deposit ({selectedInvoiceBooking.duration} mins)</span>
-                  <span>{(selectedInvoiceBooking.depositAmount ?? selectedInvoiceBooking.amount).toLocaleString()} ETB</span>
-                </div>
-                {Boolean(selectedInvoiceBooking.clientRefund && selectedInvoiceBooking.clientRefund > 0) && (
-                  <div className="flex justify-between text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                    <span>Early Departure Refund (Unused Time)</span>
-                    <span>-{selectedInvoiceBooking.clientRefund?.toLocaleString()} ETB</span>
+              {selectedInvoiceBooking.isClient ? (
+                /* CLIENT INVOICE BREAKDOWN */
+                <div className="border-t border-border pt-4 space-y-2">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Base Consultation Fee ({selectedInvoiceBooking.duration} mins)</span>
+                    <span>{formatCurrency(selectedInvoiceBooking.baseRate)} ETB</span>
                   </div>
-                )}
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Platform & Escrow Service Fee (2.5%)</span>
-                  <span>Included</span>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Client Platform Service Fee (1.25%)</span>
+                    <span>{formatCurrency(selectedInvoiceBooking.clientPlatformFee)} ETB</span>
+                  </div>
+                  {Boolean(selectedInvoiceBooking.clientRefund && selectedInvoiceBooking.clientRefund > 0) && (
+                    <div className="flex justify-between text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                      <span>Early Departure Refund</span>
+                      <span>-{formatCurrency(selectedInvoiceBooking.clientRefund)} ETB</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold text-base text-foreground pt-2 border-t border-border">
+                    <span>Total Charged</span>
+                    <span className="text-primary">
+                      {formatCurrency(selectedInvoiceBooking.totalDeposit - (selectedInvoiceBooking.clientRefund || 0))} ETB
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between font-bold text-base text-foreground pt-2 border-t border-border">
-                  <span>Total Actual Amount Paid</span>
-                  <span className="text-primary">{selectedInvoiceBooking.amount.toLocaleString()} ETB</span>
+              ) : (
+                /* EXPERT PAYOUT RECEIPT BREAKDOWN */
+                <div className="border-t border-border pt-4 space-y-2">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Gross Consultation Earnings ({selectedInvoiceBooking.actualDuration ?? selectedInvoiceBooking.duration} mins used)</span>
+                    <span>{formatCurrency(selectedInvoiceBooking.grossEarned)} ETB</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-destructive font-medium">
+                    <span>Platform Service Commission (1.25%)</span>
+                    <span>-{formatCurrency(selectedInvoiceBooking.expertPlatformFee)} ETB</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-base text-foreground pt-2 border-t border-border">
+                    <span>Net Remitted to Wallet</span>
+                    <span className="text-emerald-600 dark:text-emerald-400">
+                      {formatCurrency(selectedInvoiceBooking.expertPayout)} ETB
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 p-3 rounded-xl flex items-center justify-between text-xs font-semibold">
                 <span className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4" /> Escrow Settlement Completed
+                  <CheckCircle className="w-4 h-4" />
+                  {selectedInvoiceBooking.isClient ? "Escrow Payment Settled" : "Payout Transfer Completed"}
                 </span>
-                <span>Chapa Pay</span>
+                <span>{selectedInvoiceBooking.isClient ? "Chapa Pay" : "Mobile Wallet"}</span>
               </div>
             </div>
 
             <div className="flex gap-3 pt-2">
-              <button 
+              <button
                 onClick={() => window.print()}
                 className="flex-1 py-3 bg-primary text-primary-foreground text-xs font-bold rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
               >
                 <Printer className="w-4 h-4" /> Print / Save PDF
               </button>
-              <button 
+              <button
                 onClick={() => setSelectedInvoiceBooking(null)}
                 className="py-3 px-5 border border-border text-foreground text-xs font-semibold rounded-xl hover:bg-muted transition-colors"
               >

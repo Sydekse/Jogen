@@ -162,8 +162,10 @@ export function ExpertDashboard() {
       const isUserExpert = userProfile?.phone_number && b.client_phone !== userProfile.phone_number;
       if (isUserExpert) {
         if (!expertDataObj.wallet_balance && b.status === 'completed') {
-          // Net 97.5% expert payout after 2.5% platform fee
-          totalEarnings += parseFloat(b.rate_snapshot || '0') * 0.975;
+          const earned = b.settlement?.expert_payout 
+            ? parseFloat(b.settlement.expert_payout) 
+            : parseFloat(b.rate_snapshot || '0') * 0.9875;
+          totalEarnings += earned;
         }
         if (b.status === 'escrowed' || b.status === 'pending_payment') {
           activeSessions++;
@@ -174,8 +176,13 @@ export function ExpertDashboard() {
       }
     });
 
+    const formattedEarnings = Number(totalEarnings).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
     return [
-      { title: "Total Earnings", value: `${Math.round(totalEarnings).toLocaleString()} ETB`, icon: DollarSign, trend: "+0%" },
+      { title: "Total Earnings", value: `${formattedEarnings} ETB`, icon: DollarSign, trend: "+0%" },
       { title: "Active Sessions", value: activeSessions.toString(), icon: Users, trend: "+0" },
       { title: "Pending Requests", value: pendingRequests.toString(), icon: Clock, trend: "+0" },
       { title: "Profile Views", value: "N/A", icon: BarChart3, trend: "0%" },

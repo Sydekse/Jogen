@@ -5,4 +5,5 @@ from .views import NotificationListView, NotificationReadView
 urlpatterns = [
     path("", NotificationListView.as_view(), name="notification_list"),
     path("<uuid:id>", NotificationReadView.as_view(), name="notification_read"),
+    path("<uuid:id>/", NotificationReadView.as_view()),
 ]

@@ -104,7 +104,7 @@ class TestWalletAndDropCallEscrow:
         self.escrow_tx = EscrowTransaction.objects.create(
             booking=self.booking,
             tx_ref="JOGEN-ESCROW-DROPTEST123",
-            amount=Decimal("1000.00"),
+            amount=Decimal("1012.50"),
             status="held",
         )
 
@@ -148,6 +148,7 @@ class TestWalletAndDropCallEscrow:
         assert res.status_code == status.HTTP_200_OK
         assert res.data["decision"] == "grace_period_refund"
         assert res.data["client_refund"] == "1000.00"
+        assert res.data["platform_fee"] == "12.50"
 
         self.escrow_tx.refresh_from_db()
         self.booking.refresh_from_db()
@@ -171,7 +172,8 @@ class TestWalletAndDropCallEscrow:
         assert res.data["decision"] == "prorated_adjustment"
         assert res.data["gross_earned"] == "500.00"
         assert res.data["client_refund"] == "500.00"
-        assert res.data["expert_payout"] == "487.50"
+        assert res.data["expert_payout"] == "493.75"
+        assert res.data["platform_fee"] == "18.75"
 
         self.escrow_tx.refresh_from_db()
         self.booking.refresh_from_db()
@@ -193,7 +195,7 @@ class TestWalletAndDropCallEscrow:
         assert res.data["decision"] == "full_completion"
         assert res.data["client_refund"] == "0.00"
         assert res.data["platform_fee"] == "25.00"
-        assert res.data["expert_payout"] == "975.00"
+        assert res.data["expert_payout"] == "987.50"
 
         self.escrow_tx.refresh_from_db()
         self.booking.refresh_from_db()
@@ -208,14 +210,14 @@ class TestPrecisionEscrowCalculator:
 
     def test_arbitrary_second_precision(self):
         res = PrecisionEscrowCalculator.calculate(
-            total_deposit=Decimal("750.50"),
+            total_deposit=Decimal("759.38"),
             duration_seconds=423,
         )
         assert res.decision == "prorated_adjustment"
-        assert res.gross_earned == Decimal("176.37")
-        assert res.client_refund == Decimal("574.13")
-        assert res.platform_fee == Decimal("4.41")
-        assert res.expert_payout == Decimal("171.96")
+        assert res.gross_earned == Decimal("176.25")
+        assert res.client_refund == Decimal("573.75")
+        assert res.platform_fee == Decimal("11.58")
+        assert res.expert_payout == Decimal("174.05")
 
         # Invariant check
-        assert res.client_refund + res.expert_payout + res.platform_fee == Decimal("750.50")
+        assert res.client_refund + res.expert_payout + res.platform_fee == Decimal("759.38")

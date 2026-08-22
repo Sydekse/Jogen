@@ -29,10 +29,15 @@ export interface BookingDetail {
   cancellation_reason?: string;
   has_review?: boolean;
   settlement?: {
+    decision: string;
+    duration_seconds: number;
+    total_deposit: string;
     gross_earned: string;
     client_refund: string;
-    duration_seconds: number;
-    decision: string;
+    client_platform_fee: string;
+    expert_platform_fee: string;
+    platform_fee: string;
+    expert_payout: string;
   } | null;
   created_at: string;
 }

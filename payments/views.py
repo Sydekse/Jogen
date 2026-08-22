@@ -1,5 +1,5 @@
 import uuid
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from django.conf import settings
 from django.db import transaction
@@ -54,7 +54,11 @@ class InitializeEscrowPaymentView(APIView):
                 )
 
             tx_ref = f"JOGEN-ESCROW-{uuid.uuid4().hex[:12].upper()}"
-            amount = booking.rate_snapshot
+            base_rate = booking.rate_snapshot
+            client_fee = (base_rate * Decimal("0.0125")).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+            amount = base_rate + client_fee
 
             frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:3000")
             backend_url = getattr(settings, "BACKEND_URL", "http://localhost:8000")
@@ -163,7 +167,13 @@ class AtomicEscrowReleaseView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            net_expert_payout = escrow_tx.amount * Decimal("0.90")
+            base_amount = (escrow_tx.amount / Decimal("1.0125")).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+            expert_fee = (base_amount * Decimal("0.0125")).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+            net_expert_payout = base_amount - expert_fee
 
             chapa_service = ChapaService()
             payout_res = chapa_service.transfer_to_expert(
