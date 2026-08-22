@@ -9,6 +9,8 @@ import { Globe, Sun, Moon, AlertCircle, ArrowLeft } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { JogenLogo } from "@/src/components/ui/jogenLogo";
 import { sendOtpApi, verifyOtpApi } from "@/src/services/authServices";
+import { getUserProfile } from "@/src/services/userService";
+import { API_BASE_URL } from "@/src/config/api";
 import { useModal } from "@/src/context/ModalContext";
 import { useUser } from "@/src/context/UserContext";
 
@@ -26,10 +28,12 @@ function formatTime(s: number) {
 export function AuthScreen({ onLoginSuccess }: { onLoginSuccess: () => void }) {
   const [lang, setLang] = useState<"en" | "am">("en");
   const { darkMode, setDarkMode } = useUser();
-  const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [step, setStep] = useState<"phone" | "otp" | "name">("phone");
   const [submittedPhone, setSubmittedPhone] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [timeLeft, setTimeLeft] = useState(300);
+  const [fullName, setFullName] = useState("");
+  const [savingName, setSavingName] = useState(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const { showAlert } = useModal();
 
@@ -87,15 +91,60 @@ export function AuthScreen({ onLoginSuccess }: { onLoginSuccess: () => void }) {
         console.log("Authentication successful! Token received:", result.data.access);
         localStorage.setItem("access_token", result.data.access);
         if (result.data.refresh) {
-            localStorage.setItem("refresh_token", result.data.refresh);
+          localStorage.setItem("refresh_token", result.data.refresh);
         }
-        // Trigger the transition to the chat interface!
-        onLoginSuccess();
+
+        let needsName = Boolean(result.data.is_new_user);
+        try {
+          const profile = await getUserProfile();
+          if (!profile.full_name || !profile.full_name.trim()) {
+            needsName = true;
+          }
+        } catch (e) {
+          console.error("Profile check failed:", e);
+        }
+
+        if (needsName) {
+          setStep("name");
+        } else {
+          onLoginSuccess();
+        }
       } else {
         await showAlert(result.message || "Invalid verification code.");
         setOtp(["", "", "", "", "", ""]);
         otpRefs.current[0]?.focus();
       }
+    }
+  };
+
+  const onNameSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fullName.trim()) return;
+
+    setSavingName(true);
+    try {
+      const token = localStorage.getItem("access_token");
+      const formData = new FormData();
+      formData.append("full_name", fullName.trim());
+
+      const response = await fetch(`${API_BASE_URL}/auth/profile/update/`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        onLoginSuccess();
+      } else {
+        await showAlert(lang === "en" ? "Failed to save name. Please try again." : "ስም ማስቀመጥ አልተቻለም። እባክዎ እንደገና ይሞክሩ።");
+      }
+    } catch (err) {
+      console.error("Failed to update name:", err);
+      await showAlert(lang === "en" ? "Network error saving name." : "ስም በሚቀመጥበት ጊዜ የኔትወርክ ስህተት አጋጥሟል።");
+    } finally {
+      setSavingName(false);
     }
   };
 
@@ -128,10 +177,14 @@ export function AuthScreen({ onLoginSuccess }: { onLoginSuccess: () => void }) {
               <JogenLogo className="w-8 h-8 text-primary" />
             </div>
             <h1 className="text-2xl font-bold text-foreground mb-2">
-              {lang === "en" ? "Welcome to Jogen" : "እንኳን ወደ ጆገን መጡ"}
+              {step === "name"
+                ? (lang === "en" ? "What's your name?" : "ስምዎን ያስገቡ")
+                : (lang === "en" ? "Welcome to Jogen" : "እንኳን ወደ ጆገን መጡ")}
             </h1>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              {lang === "en" ? "Ethiopian business law & tax advisory, on demand." : "የኢትዮጵያ ዕቅድ ህግ እና ታክስ አማካሪ፣ ፍላጎት ሲኖር።"}
+              {step === "name"
+                ? (lang === "en" ? "Please enter your name to complete registration." : "ምዝገባውን ለማጠናቀቅ እባክዎን ስምዎን ያስገቡ።")
+                : (lang === "en" ? "Ethiopian business law & tax advisory, on demand." : "የኢትዮጵያ ዕቅድ ህግ እና ታክስ አማካሪ፣ ፍላጎት ሲኖር።")}
             </p>
           </div>
 
@@ -179,7 +232,7 @@ export function AuthScreen({ onLoginSuccess }: { onLoginSuccess: () => void }) {
                   {isSubmitting ? (lang === "en" ? "Sending…" : "እየላከ ነው…") : (lang === "en" ? "Send Verification Code" : "የማረጋገጫ ኮድ ላክ")}
                 </button>
               </form>
-            ) : (
+            ) : step === "otp" ? (
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -230,6 +283,38 @@ export function AuthScreen({ onLoginSuccess }: { onLoginSuccess: () => void }) {
                   {lang === "en" ? "Change number" : "ቁጥር ቀይር"}
                 </button>
               </div>
+            ) : (
+              <form onSubmit={onNameSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-2">
+                    {lang === "en" ? "What's your full name?" : "ሙሉ ስምዎ ማን ነው?"}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder={lang === "en" ? "e.g. Abebe Bikila" : "ምሳሌ፡ አበበ ቢቂላ"}
+                    autoFocus
+                    className="w-full px-4 py-3 bg-transparent border border-border rounded-xl text-foreground placeholder:text-muted-foreground text-sm focus:border-primary focus:outline-none transition-colors shadow-sm"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    {lang === "en"
+                      ? "This name will appear on your consultations and receipts."
+                      : "ይህ ስም በአማካሪዎችዎ እና ደረሰኞችዎ ላይ ይታያል።"}
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={savingName || !fullName.trim()}
+                  className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {savingName
+                    ? (lang === "en" ? "Saving…" : "እየቀመጠ ነው…")
+                    : (lang === "en" ? "Continue" : "ቀጥል")}
+                </button>
+              </form>
             )}
           </div>
         </div>
