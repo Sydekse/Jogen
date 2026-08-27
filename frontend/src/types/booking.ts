@@ -16,9 +16,12 @@ export interface BookingCreatePayload {
 
 export interface BookingDetail {
   id: string;
+  client_id?: string;
   client_phone: string;
   client_name?: string;
+  client_email?: string;
   expert: string;
+  expert_user_id?: string;
   expert_name: string;
   expert_title: string;
   channel: BookingChannel;

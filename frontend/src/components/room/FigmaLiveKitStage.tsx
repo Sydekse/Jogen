@@ -8,11 +8,12 @@ import {
   useRoomContext,
   VideoTrack
 } from '@livekit/components-react';
-import { Track } from 'livekit-client';
+import { Track, RoomEvent } from 'livekit-client';
 import { paymentService } from '@/src/services/paymentService';
 import { BookingChannel } from '@/src/types/booking';
 import { fetchWithAuth } from '@/src/lib/apiClient';
 import { API_BASE_URL } from '@/src/config/api';
+import { useUser } from '@/src/context/UserContext';
 import { 
   Mic, MicOff, Camera, CameraOff, ScreenShare, ScreenShareOff,
   PhoneOff, Timer, FileUp, FileText, X
@@ -37,6 +38,7 @@ export default function FigmaLiveKitStage({
 }: FigmaLiveKitStageProps) {
   const router = useRouter();
   const room = useRoomContext();
+  const { isExpert } = useUser();
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
   const cameraTracks = useTracks([Track.Source.Camera], { onlySubscribed: true });
 
@@ -64,9 +66,22 @@ export default function FigmaLiveKitStage({
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const warned = useRef(false);
+  const endingSessionRef = useRef(false);
 
   const handleEndSession = useCallback(async () => {
-    room.disconnect();
+    if (endingSessionRef.current) return;
+    endingSessionRef.current = true;
+
+    try {
+      if (room && room.state === 'connected') {
+        const data = new TextEncoder().encode(JSON.stringify({ type: 'SESSION_ENDED' }));
+        await room.localParticipant.publishData(data, { reliable: true });
+        room.disconnect();
+      }
+    } catch (err) {
+      console.error('Failed to broadcast session end signal:', err);
+    }
+
     let settlementSucceeded = false;
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') || '' : '';
@@ -83,9 +98,41 @@ export default function FigmaLiveKitStage({
       console.error('Session settlement request failed:', err);
     } finally {
       const queryParam = settlementSucceeded ? '?settled=true' : '';
-      router.push(`/bookings/${bookingId}/review${queryParam}`);
+      if (isExpert) {
+        router.push(`/bookings${queryParam}`);
+      } else {
+        router.push(`/bookings/${bookingId}/review${queryParam}`);
+      }
     }
-  }, [room, bookingId, scheduledStart, router]);
+  }, [room, bookingId, scheduledStart, router, isExpert]);
+
+  useEffect(() => {
+    if (!room) return;
+
+    const onDataReceived = (payload: Uint8Array) => {
+      try {
+        const str = new TextDecoder().decode(payload);
+        const data = JSON.parse(str);
+        if (data.type === 'SESSION_ENDED') {
+          handleEndSession();
+        }
+      } catch (err) {
+        console.error('Error parsing room data event:', err);
+      }
+    };
+
+    const onDisconnected = () => {
+      handleEndSession();
+    };
+
+    room.on(RoomEvent.DataReceived, onDataReceived);
+    room.on(RoomEvent.Disconnected, onDisconnected);
+
+    return () => {
+      room.off(RoomEvent.DataReceived, onDataReceived);
+      room.off(RoomEvent.Disconnected, onDisconnected);
+    };
+  }, [room, handleEndSession]);
 
   useEffect(() => {
     const timer = setInterval(() => {

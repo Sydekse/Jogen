@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import { Star, Loader2, CheckCircle2 } from 'lucide-react';
 import { reviewService } from '@/src/services/reviewService';
 import { API_BASE_URL } from '@/src/config/api';
+import { useUser } from '@/src/context/UserContext';
 import Link from 'next/link';
 
 export default function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const bookingId = resolvedParams.id;
   const router = useRouter();
+  const { isExpert } = useUser();
 
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
@@ -22,6 +24,11 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [error, setError] = useState<string | null>(null);
 
   React.useEffect(() => {
+    if (isExpert) {
+      router.replace('/bookings');
+      return;
+    }
+
     async function checkReviewStatus() {
       try {
         const token = localStorage.getItem('access_token') || '';
@@ -41,7 +48,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
       }
     }
     checkReviewStatus();
-  }, [bookingId]);
+  }, [bookingId, isExpert, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
