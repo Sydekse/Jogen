@@ -51,6 +51,9 @@ interface Booking {
   depositAmount?: number; clientRefund?: number; actualDuration?: number;
   settlementDecision?: string;
   isClient: boolean;
+  clientName: string;
+  expertName: string;
+  expertTitle: string;
   baseRate: number;
   totalDeposit: number;
   grossEarned: number;
@@ -116,9 +119,19 @@ export function MyBookings() {
 
           const mode: SessionMode = b.channel === "chat" ? "text" : b.channel;
 
-          const isCurrentUserClient = userProfile?.phone_number === b.client_phone;
-          const displayPartyName = isCurrentUserClient ? (b.expert_name || "Unknown Expert") : (b.client_name || "Client");
-          const displayPartyTitle = isCurrentUserClient ? (b.expert_title || "Consultant") : "Client";
+          const isCurrentUserClient = Boolean(
+            (userProfile?.id && b.client_id && String(userProfile.id) === String(b.client_id)) ||
+            (userProfile?.phone_number && userProfile.phone_number === b.client_phone) ||
+            (userProfile?.email && b.client_email && userProfile.email === b.client_email) ||
+            (!userProfile?.is_expert)
+          );
+
+          const clientName = b.client_name || b.client_phone || "Client";
+          const expertName = b.expert_name || "Unknown Expert";
+          const expertTitle = b.expert_title || "Consultant";
+
+          const displayPartyName = isCurrentUserClient ? expertName : clientName;
+          const displayPartyTitle = isCurrentUserClient ? expertTitle : "Client";
 
           return {
             id: b.id,
@@ -144,6 +157,9 @@ export function MyBookings() {
             invoiceReady: uiStatus === "completed",
             hasReview: Boolean(b.has_review),
             isClient: isCurrentUserClient,
+            clientName,
+            expertName,
+            expertTitle,
             baseRate,
             totalDeposit,
             grossEarned,
@@ -466,8 +482,12 @@ export function MyBookings() {
                   <p className="text-xs text-muted-foreground font-medium">
                     {selectedInvoiceBooking.isClient ? "Expert Advisor" : "Client User"}
                   </p>
-                  <p className="font-bold text-foreground">{selectedInvoiceBooking.expert.name}</p>
-                  <p className="text-xs text-muted-foreground">{selectedInvoiceBooking.expert.title}</p>
+                  <p className="font-bold text-foreground">
+                    {selectedInvoiceBooking.isClient ? selectedInvoiceBooking.expertName : selectedInvoiceBooking.clientName}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedInvoiceBooking.isClient ? selectedInvoiceBooking.expertTitle : "Client User"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">Session Mode & Duration</p>
