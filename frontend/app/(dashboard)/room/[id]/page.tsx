@@ -9,7 +9,7 @@ export default async function RoomPage({
   const resolvedParams = await params;
 
   return (
-    <main className="h-[calc(100vh-56px)] bg-background">
+    <main className="h-[calc(100dvh-56px)] bg-background overflow-hidden">
       <ConsultationRoomWrapper bookingId={resolvedParams.id} />
     </main>
   );
