@@ -141,3 +141,56 @@ class TestAuthEndpoints:
         # 3. Prove the server rejects it
         assert failed_response.status_code == 401
         assert failed_response.data["code"] == "token_not_valid"
+
+    def test_google_auth_new_user_success(self, api_client):
+        """Test Google OAuth registration for a new email creates user and flags needs_phone."""
+        url = reverse("google-auth")
+        payload = {
+            "email": "testuser@gmail.com",
+            "name": "Test Google User",
+        }
+
+        response = api_client.post(url, payload)
+
+        assert response.status_code == 200
+        assert "access" in response.data
+        assert "refresh" in response.data
+        assert response.data["is_new_user"] is True
+        assert response.data["needs_phone"] is True
+        assert response.data["user"]["email"] == "testuser@gmail.com"
+
+        user = User.objects.get(email="testuser@gmail.com")
+        assert user.full_name == "Test Google User"
+        assert user.phone_number is None
+
+    def test_google_auth_existing_user(self, api_client):
+        """Test Google OAuth login for an existing user returns existing details."""
+        User.objects.create_user(
+            email="existing@gmail.com",
+            phone_number="+251911998877",
+            full_name="Existing User",
+        )
+
+        url = reverse("google-auth")
+        response = api_client.post(url, {"email": "existing@gmail.com", "name": "Existing User"})
+
+        assert response.status_code == 200
+        assert response.data["is_new_user"] is False
+        assert response.data["needs_phone"] is False
+        assert response.data["user"]["phone_number"] == "+251911998877"
+
+    def test_google_user_onboarding_phone_update(self, api_client):
+        """Test adding a phone number for a Google OAuth user via update-profile."""
+        user = User.objects.create_user(
+            email="nophone@gmail.com",
+            phone_number=None,
+            full_name="No Phone User",
+        )
+        api_client.force_authenticate(user=user)
+
+        url = reverse("update-profile")
+        response = api_client.patch(url, {"phone_number": "+251977665544"})
+
+        assert response.status_code == 200
+        user.refresh_from_db()
+        assert user.phone_number == "+251977665544"

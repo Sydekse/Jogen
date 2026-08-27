@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { User, Briefcase, FileUp, Save, LogOut, Camera, X } from "lucide-react";
 import { useModal } from "@/src/context/ModalContext";
+import { useUser } from "@/src/context/UserContext";
 import { API_BASE_URL } from "@/src/config/api";
 
 export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate }: {
@@ -8,8 +9,9 @@ export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate
   setIsExpert: (v: boolean) => void;
   onLogout: () => void;
   userProfile?: Record<string, unknown> | null;
-  onProfileUpdate?: ()=>void;
+  onProfileUpdate?: () => void;
 }) {
+  const { lang } = useUser();
   const [formData, setFormData] = useState({
     name: (userProfile?.full_name as string) || "",
     email: (userProfile?.email as string) || "",
@@ -17,7 +19,7 @@ export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate
     bio: (userProfile?.expert_data as any)?.bio || "",
   });
   const { showAlert } = useModal();
-  
+
   const [dismissedBanners, setDismissedBanners] = useState<Record<string, boolean>>({});
 
   React.useEffect(() => {
@@ -78,7 +80,7 @@ export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate
     const uploadData = new FormData();
     uploadData.append("full_name", formData.name);
     uploadData.append("email", formData.email);
-    
+
     // Only send bio if they are an expert or have set one
     if (formData.bio) {
       uploadData.append("bio", formData.bio);
@@ -101,7 +103,7 @@ export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate
 
       if (response.ok) {
         await showAlert("Profile saved successfully!");
-        if (onProfileUpdate){
+        if (onProfileUpdate) {
           onProfileUpdate();
         }
       } else {
@@ -248,36 +250,44 @@ export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-4 py-2 bg-muted border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
                 />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-1.5">Email Address</label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className="w-full px-4 py-2 bg-muted border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-1.5">Phone Number</label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    disabled
-                    className="w-full px-4 py-2 bg-muted/50 border border-border rounded-xl text-sm text-muted-foreground cursor-not-allowed"
-                  />
-                </div>
+              {/* Render only the primary auth identifier used for verification (disabled/unchangeable) */}
+              <div className="space-y-4">
+                {formData.phone ? (
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">
+                      {lang === "am" ? "ስልክ ቁጥር" : "Phone Number"}
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      disabled
+                      className="w-full px-4 py-2 bg-muted/50 border border-border rounded-xl text-sm text-muted-foreground cursor-not-allowed font-medium"
+                    />
+                  </div>
+                ) : formData.email ? (
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5">
+                      {lang === "am" ? "ኢሜይል አድራሻ" : "Email Address"}
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      disabled
+                      className="w-full px-4 py-2 bg-muted/50 border border-border rounded-xl text-sm text-muted-foreground cursor-not-allowed font-medium"
+                    />
+                  </div>
+                ) : null}
               </div>
               {isVerified && (
                 <div>
                   <label className="block text-sm font-semibold text-foreground mb-1.5">Professional Bio</label>
                   <textarea
                     value={formData.bio}
-                    onChange={(e) => setFormData({...formData, bio: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                     placeholder="Tell your clients a little bit about yourself, your experience, and what you can help them with..."
                     rows={4}
                     className="w-full px-4 py-2 bg-muted border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground resize-none"
@@ -342,7 +352,7 @@ export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate
                           type="text"
                           placeholder="e.g. Senior Corporate Tax Lawyer"
                           value={expertData.title}
-                          onChange={(e) => setExpertData({...expertData, title: e.target.value})}
+                          onChange={(e) => setExpertData({ ...expertData, title: e.target.value })}
                           className="w-full px-4 py-2 bg-card border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
                         />
                       </div>
@@ -353,7 +363,7 @@ export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate
                             type="number"
                             placeholder="e.g. 1500"
                             value={expertData.rate}
-                            onChange={(e) => setExpertData({...expertData, rate: e.target.value})}
+                            onChange={(e) => setExpertData({ ...expertData, rate: e.target.value })}
                             className="w-full px-4 py-2 bg-card border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
                           />
                         </div>

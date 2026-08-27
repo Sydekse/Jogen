@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '@/src/services/adminService';
-import { Shield, CheckCircle, XCircle, AlertTriangle, Loader2, Phone, Award, DollarSign, CreditCard, FileText, ExternalLink } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, AlertTriangle, Loader2, Phone, Mail, Award, DollarSign, CreditCard, FileText, ExternalLink } from 'lucide-react';
 import { useModal } from "@/src/context/ModalContext";
 
 export function AdminDashboard() {
@@ -12,7 +12,6 @@ export function AdminDashboard() {
 
   const fetchExperts = async () => {
     try {
-      // Fetch only pending requests for compliance review
       const data = await adminService.getExperts('pending');
       setExperts(data);
     } catch (e) {
@@ -31,64 +30,64 @@ export function AdminDashboard() {
   };
 
   useEffect(() => {
-    setLoading(true);
-    if (activeTab === 'experts') {
-      fetchExperts().finally(() => setLoading(false));
-    } else {
-      fetchDisputes().finally(() => setLoading(false));
-    }
-  }, [activeTab]);
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([fetchExperts(), fetchDisputes()]);
+      setLoading(false);
+    };
+    loadData();
+  }, []);
 
-  const handleVerifyExpert = async (id: string, status: 'verified' | 'rejected') => {
+  const handleVerifyExpert = async (id: string, verification_status: 'verified' | 'rejected') => {
     try {
-      const token = localStorage.getItem('access_token') || '';
-      await adminService.verifyExpert(id, status, token);
-      await fetchExperts();
+      await adminService.verifyExpert(id, verification_status);
+      showAlert(`Expert status updated to ${verification_status}`);
+      fetchExperts();
     } catch {
-      await showAlert("Failed to update expert status");
+      showAlert("Failed to update expert status.");
     }
   };
 
-  const handleResolveDispute = async (id: string, action: string) => {
+  const handleResolveDispute = async (id: string, action: 'full_refund' | 'split_50_50') => {
     try {
-      const token = localStorage.getItem('access_token') || '';
-      await adminService.resolveDispute(id, 'resolved', action, "Resolved via Admin Console", token);
-      await fetchDisputes();
+      await adminService.resolveDispute(id, 'resolved', action, 'Resolved via Admin Console');
+      showAlert("Dispute resolved successfully.");
+      fetchDisputes();
     } catch {
-      await showAlert("Failed to resolve dispute");
+      showAlert("Failed to resolve dispute.");
     }
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-8 h-full overflow-y-auto">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <Shield className="w-6 h-6 text-primary" /> Admin Console
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage platform compliance, expert verification, and dispute resolution.
-        </p>
+    <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6">
+      <div className="flex items-center justify-between border-b border-border pb-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Shield className="w-6 h-6 text-primary" /> Admin Compliance Console
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">Review expert credentials and manage dispute resolutions.</p>
+        </div>
       </div>
 
       <div className="flex gap-2 border-b border-border">
         <button
           onClick={() => setActiveTab('experts')}
-          className={`py-3 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'experts' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+          className={`pb-3 px-4 font-bold text-sm border-b-2 transition-colors ${activeTab === 'experts' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
         >
-          Expert Verification
+          Expert Applications ({experts.filter(e => e.verification_status === 'pending').length})
         </button>
         <button
           onClick={() => setActiveTab('disputes')}
-          className={`py-3 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'disputes' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+          className={`pb-3 px-4 font-bold text-sm border-b-2 transition-colors ${activeTab === 'disputes' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
         >
-          Dispute Resolution
+          Dispute Queue ({disputes.filter(d => d.status === 'open').length})
         </button>
       </div>
 
       {loading ? (
-        <div className="py-20 flex justify-center">
+        <div className="py-12 flex justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       ) : activeTab === 'experts' ? (
@@ -101,6 +100,7 @@ export function AdminDashboard() {
           {experts.map(expert => {
             const displayName = expert.user_full_name || expert.user?.full_name || 'Applicant';
             const phone = expert.user_phone || expert.user?.phone_number;
+            const email = expert.user_email || expert.user?.email;
 
             return (
               <div key={expert.id} className="bg-card border border-border rounded-2xl p-6 flex flex-col md:flex-row md:items-start justify-between gap-6">
@@ -123,8 +123,13 @@ export function AdminDashboard() {
                     </p>
                   )}
 
-                  {/* Contact & Credential Metadata */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground pt-1">
+                    {email && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-3.5 h-3.5 text-primary" />
+                        <span className="font-medium text-foreground">{email}</span>
+                      </div>
+                    )}
                     {phone && (
                       <div className="flex items-center gap-2">
                         <Phone className="w-3.5 h-3.5 text-primary" />

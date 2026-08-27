@@ -15,3 +15,18 @@ export async function getUserProfile() {
 
   return response.json();
 }
+
+export async function googleAuth(data: { credential?: string; email?: string; name?: string }) {
+  const response = await fetch(`${API_BASE_URL}/auth/google/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || errorData.detail || "Google authentication failed");
+  }
+
+  return response.json();
+}

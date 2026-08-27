@@ -79,6 +79,81 @@ class VerifyOTPView(APIView):
         )
 
 
+class GoogleAuthView(APIView):
+    def post(self, request):
+        credential = request.data.get("credential")
+        email = request.data.get("email")
+        name = request.data.get("name") or request.data.get("full_name") or ""
+
+        if credential:
+            import json
+            import urllib.request
+            try:
+                # Try verifying as ID token
+                url = f"https://oauth2.googleapis.com/tokeninfo?id_token={credential}"
+                req = urllib.request.Request(url)
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    if resp.status == 200:
+                        payload = json.loads(resp.read().decode())
+                        email = payload.get("email", email)
+                        name = payload.get("name", name)
+            except Exception:
+                try:
+                    # Fallback to Access Token userinfo endpoint
+                    url = f"https://www.googleapis.com/oauth2/v3/userinfo?access_token={credential}"
+                    req = urllib.request.Request(url)
+                    with urllib.request.urlopen(req, timeout=5) as resp:
+                        if resp.status == 200:
+                            payload = json.loads(resp.read().decode())
+                            email = payload.get("email", email)
+                            name = payload.get("name", name)
+                except Exception as e:
+                    if not email:
+                        return Response(
+                            {"error": f"Failed to verify Google token: {e!s}"},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
+        if not email:
+            return Response(
+                {"error": "Google email is required."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = User.objects.filter(email=email).first()
+        is_new_user = False
+
+        if not user:
+            user = User.objects.create_user(
+                email=email,
+                phone_number=None,
+                full_name=name,
+            )
+            is_new_user = True
+        else:
+            if not user.full_name and name:
+                user.full_name = name
+                user.save()
+
+        needs_phone = not bool(user.phone_number)
+        refresh = RefreshToken.for_user(user)
+
+        return Response(
+            {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "is_new_user": is_new_user,
+                "needs_phone": needs_phone,
+                "user": {
+                    "id": str(user.id),
+                    "email": user.email,
+                    "full_name": user.full_name,
+                    "phone_number": user.phone_number,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -137,6 +212,7 @@ class UpdateProfileView(APIView):
         new_name = request.data.get("full_name")
         new_language = request.data.get("preferred_language")
         new_email = request.data.get("email")
+        new_phone = request.data.get("phone_number")
 
         # Extract the file data
         new_picture = request.FILES.get("profile_picture")
@@ -160,6 +236,16 @@ class UpdateProfileView(APIView):
 
         if new_email is not None:
             user.email = new_email
+            updated = True
+
+        if new_phone is not None:
+            existing = User.objects.filter(phone_number=new_phone).exclude(id=user.id).first()
+            if existing:
+                return Response(
+                    {"error": "This phone number is already registered to another account."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            user.phone_number = new_phone
             updated = True
 
         if new_picture is not None:

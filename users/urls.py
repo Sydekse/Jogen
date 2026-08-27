@@ -1,11 +1,12 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenBlacklistView, TokenRefreshView
 
-from .views import RequestOTPView, UpdateProfileView, UserProfileView, VerifyOTPView
+from .views import GoogleAuthView, RequestOTPView, UpdateProfileView, UserProfileView, VerifyOTPView
 
 urlpatterns = [
     # Notice we don't repeat '/api/v1/auth/' here, just the final part of the path
     # path("send-otp/", SendOtpView.as_view(), name="send-otp"),
+    path("google/", GoogleAuthView.as_view(), name="google-auth"),
     path("request-otp/", RequestOTPView.as_view(), name="request-otp"),
     path("verify-otp/", VerifyOTPView.as_view(), name="verify-otp"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
