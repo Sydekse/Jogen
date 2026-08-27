@@ -59,27 +59,27 @@ export function AdminDashboard() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 max-w-6xl mx-auto space-y-5 sm:space-y-6">
       <div className="flex items-center justify-between border-b border-border pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Shield className="w-6 h-6 text-primary" /> Admin Compliance Console
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
+            <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /> Admin Compliance Console
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">Review expert credentials and manage dispute resolutions.</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">Review expert credentials and manage dispute resolutions.</p>
         </div>
       </div>
 
-      <div className="flex gap-2 border-b border-border">
+      <div className="flex gap-1 sm:gap-2 border-b border-border overflow-x-auto">
         <button
           onClick={() => setActiveTab('experts')}
-          className={`pb-3 px-4 font-bold text-sm border-b-2 transition-colors ${activeTab === 'experts' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+          className={`pb-3 px-3 sm:px-4 font-bold text-xs sm:text-sm border-b-2 transition-colors whitespace-nowrap ${activeTab === 'experts' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
         >
           Expert Applications ({experts.filter(e => e.verification_status === 'pending').length})
         </button>
         <button
           onClick={() => setActiveTab('disputes')}
-          className={`pb-3 px-4 font-bold text-sm border-b-2 transition-colors ${activeTab === 'disputes' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+          className={`pb-3 px-3 sm:px-4 font-bold text-xs sm:text-sm border-b-2 transition-colors whitespace-nowrap ${activeTab === 'disputes' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
         >
           Dispute Queue ({disputes.filter(d => d.status === 'open').length})

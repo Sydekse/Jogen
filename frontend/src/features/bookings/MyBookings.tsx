@@ -234,12 +234,12 @@ export function MyBookings() {
 
   return (
     <div className="h-full overflow-y-auto bg-background">
-      <div className="max-w-4xl mx-auto px-6 py-8">
+      <div className="max-w-4xl mx-auto px-3.5 sm:px-6 py-4 sm:py-8">
 
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">My Bookings</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">My Bookings</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             {upcomingCount > 0
               ? `You have ${upcomingCount} upcoming session${upcomingCount > 1 ? "s" : ""}.`
               : "No upcoming sessions. Find an expert to book a consultation."}
@@ -270,17 +270,17 @@ export function MyBookings() {
         ))}
 
         {/* Filter Tabs */}
-        <div className="flex flex-wrap gap-1.5 mb-6 bg-muted/40 rounded-xl p-1 border border-border w-fit">
+        <div className="flex gap-1 mb-6 bg-muted/40 rounded-xl p-1 border border-border w-full sm:w-fit overflow-x-auto">
           {tabs.map(t => (
             <button
               key={t.id}
               onClick={() => setFilter(t.id)}
-              className={cn("flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition-colors",
+              className={cn("flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap",
                 filter === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
             >
               {t.label}
               {t.count !== undefined && (
-                <span className={cn("text-xs px-1.5 py-0.5 rounded-full font-bold",
+                <span className={cn("text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full font-bold",
                   filter === t.id ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
                   {t.count}
                 </span>

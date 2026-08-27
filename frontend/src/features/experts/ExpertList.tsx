@@ -43,15 +43,15 @@ export function ExpertList({ onViewExpert }: { onViewExpert?: (id: string) => vo
   }, [fetchExperts]);
 
   return (
-    <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-8">
+    <div className="p-4 sm:p-6 md:p-8 max-w-6xl mx-auto space-y-6 sm:space-y-8">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Verified Expert Network</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Verified Expert Network</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Connect with licensed Ethiopian lawyers, accountants, and regulatory consultants.
           </p>
         </div>
-        <div className="flex gap-3 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 w-full md:w-auto">
           <div className="relative flex-1 md:w-72">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -59,16 +59,16 @@ export function ExpertList({ onViewExpert }: { onViewExpert?: (id: string) => vo
               placeholder="Search experts..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-muted border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
+              className="w-full pl-9 pr-4 py-2 bg-muted border border-border rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
             />
           </div>
-          <div className="relative w-32 md:w-36">
+          <div className="relative w-full sm:w-32 md:w-36">
             <input
               type="number"
               placeholder="Max Rate"
               value={maxRate}
               onChange={(e) => setMaxRate(e.target.value)}
-              className="w-full px-4 py-2 bg-muted border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
+              className="w-full px-4 py-2 bg-muted border border-border rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
             />
           </div>
         </div>

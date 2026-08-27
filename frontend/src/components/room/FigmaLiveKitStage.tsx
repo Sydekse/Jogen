@@ -15,7 +15,7 @@ import { fetchWithAuth } from '@/src/lib/apiClient';
 import { API_BASE_URL } from '@/src/config/api';
 import { 
   Mic, MicOff, Camera, CameraOff, ScreenShare, ScreenShareOff,
-  PhoneOff, Timer, FileUp
+  PhoneOff, Timer, FileUp, FileText, X
 } from 'lucide-react';
 
 function cn(...classes: (string | false | undefined | null)[]) {
@@ -36,29 +36,24 @@ export default function FigmaLiveKitStage({
   scheduledEnd 
 }: FigmaLiveKitStageProps) {
   const router = useRouter();
-  
-  // --- LiveKit Hooks ---
   const room = useRoomContext();
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
-  
-  // Fetch all active camera tracks (yours + the expert's)
   const cameraTracks = useTracks([Track.Source.Camera], { onlySubscribed: true });
 
-  const calculateRemainingSeconds = useCallback(() => {
+  const calculateRemainingSeconds = () => {
     if (!scheduledEnd) return 25 * 60;
     const endMs = new Date(scheduledEnd).getTime();
     const nowMs = Date.now();
     return Math.max(0, Math.floor((endMs - nowMs) / 1000));
-  }, [scheduledEnd]);
+  };
 
-  const calculateSecondsUntilStart = useCallback(() => {
+  const calculateSecondsUntilStart = () => {
     if (!scheduledStart) return 0;
     const startMs = new Date(scheduledStart).getTime();
     const nowMs = Date.now();
     return Math.max(0, Math.floor((startMs - nowMs) / 1000));
-  }, [scheduledStart]);
+  };
 
-  // --- UI State (From your Figma design) ---
   const [timeLeft, setTimeLeft] = useState<number>(() => calculateRemainingSeconds());
   const [timeUntilStart, setTimeUntilStart] = useState<number>(() => calculateSecondsUntilStart());
   const [showWarning, setShowWarning] = useState(false);
@@ -66,27 +61,9 @@ export default function FigmaLiveKitStage({
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [sessionFiles, setSessionFiles] = useState<Array<{ id: string; file_name: string }>>([]);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const warned = useRef(false);
-
-  useEffect(() => {
-    setTimeLeft(calculateRemainingSeconds());
-    setTimeUntilStart(calculateSecondsUntilStart());
-  }, [scheduledStart, scheduledEnd, calculateRemainingSeconds, calculateSecondsUntilStart]);
-
-  useEffect(() => {
-    const loadFiles = async () => {
-      try {
-        const response = await fetchWithAuth(`${API_BASE_URL}/consultations/${bookingId}/files/`);
-        if (response.ok) setSessionFiles(await response.json());
-      } catch (error) {
-        console.error('Failed to load session files:', error);
-      }
-    };
-    loadFiles();
-    const intervalId = window.setInterval(loadFiles, 10000);
-    return () => window.clearInterval(intervalId);
-  }, [bookingId]);
 
   const handleEndSession = useCallback(async () => {
     room.disconnect();
@@ -98,89 +75,144 @@ export default function FigmaLiveKitStage({
         const startMs = new Date(scheduledStart).getTime();
         const nowMs = Date.now();
         elapsedSeconds = Math.max(0, Math.floor((nowMs - startMs) / 1000));
-      } else {
-        elapsedSeconds = Math.max(0, (25 * 60) - timeLeft);
       }
+
       const settlement = await paymentService.submitSessionEnd(bookingId, elapsedSeconds, token);
       settlementSucceeded = Boolean(settlement.status);
     } catch (err) {
-      console.error("Failed to submit session end data:", err);
+      console.error('Session settlement request failed:', err);
+    } finally {
+      const queryParam = settlementSucceeded ? '?settled=true' : '';
+      router.push(`/bookings/${bookingId}/review${queryParam}`);
     }
-    router.push(settlementSucceeded ? `/bookings/${bookingId}/review` : '/bookings');
-  }, [room, router, bookingId, timeLeft, scheduledStart]);
+  }, [room, bookingId, scheduledStart, router]);
 
-  // Timer Logic
   useEffect(() => {
-    const t = setInterval(() => {
-      const remaining = calculateRemainingSeconds();
-      const untilStart = calculateSecondsUntilStart();
-
-      setTimeLeft(remaining);
-      setTimeUntilStart(untilStart);
-
-      if (remaining <= 0) {
-        clearInterval(t);
-        handleEndSession();
-      } else if (remaining <= 120 && !warned.current) {
-        warned.current = true;
-        setShowWarning(true);
-      }
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          handleEndSession();
+          return 0;
+        }
+        if (prev === 120 && !warned.current) {
+          setShowWarning(true);
+          warned.current = true;
+        }
+        return prev - 1;
+      });
     }, 1000);
-    return () => clearInterval(t);
-  }, [calculateRemainingSeconds, calculateSecondsUntilStart, handleEndSession]);
+    return () => clearInterval(timer);
+  }, [handleEndSession]);
 
-  // --- Actions ---
-  const toggleMic = () => localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
-  const toggleCam = () => localParticipant.setCameraEnabled(!isCameraEnabled);
+  useEffect(() => {
+    if (timeUntilStart <= 0) return;
+    const timer = setInterval(() => {
+      setTimeUntilStart((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [timeUntilStart]);
+
+  const authorizeExtension = async () => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') || '' : '';
+      const response = await fetchWithAuth(`${API_BASE_URL}/consultations/${bookingId}/extend/`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to authorize extension.');
+      }
+
+      const data = await response.json();
+      setShowWarning(false);
+      if (data.scheduled_end) {
+        const endMs = new Date(data.scheduled_end).getTime();
+        const nowMs = Date.now();
+        setTimeLeft(Math.max(0, Math.floor((endMs - nowMs) / 1000)));
+      } else {
+        setTimeLeft((prev) => prev + 15 * 60);
+      }
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Extension failed.');
+    }
+  };
+
+  const toggleMic = () => {
+    localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
+  };
+
+  const toggleCam = () => {
+    localParticipant.setCameraEnabled(!isCameraEnabled);
+  };
 
   const toggleScreenShare = async () => {
     try {
       const nextState = !isScreenSharing;
       await localParticipant.setScreenShareEnabled(nextState);
       setIsScreenSharing(nextState);
-    } catch (error) {
-      console.error('Failed to toggle screen sharing:', error);
+    } catch (err) {
+      console.error('Failed to toggle screen share:', err);
     }
   };
 
-  const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
-
     setUploadingFile(true);
+
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') || '' : '';
       const formData = new FormData();
       formData.append('file', file);
-      const uploadResponse = await fetchWithAuth(`${API_BASE_URL}/consultations/${bookingId}/files/`, {
+
+      const response = await fetch(`${API_BASE_URL}/consultations/${bookingId}/files/`, {
         method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
       });
-      const registeredFile = await uploadResponse.json();
-      if (!uploadResponse.ok) throw new Error(registeredFile.error?.message || 'Could not upload file.');
-      setSessionFiles((previous) => [registeredFile, ...previous]);
-    } catch (error) {
-      console.error('Failed to upload session file:', error);
+
+      if (!response.ok) {
+        throw new Error('Failed to upload document.');
+      }
+
+      const updated = await fetchWithAuth(`${API_BASE_URL}/consultations/${bookingId}/files/`);
+      if (updated.ok) {
+        setSessionFiles(await updated.json());
+      }
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Upload failed.');
     } finally {
       setUploadingFile(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
   const openSessionFile = async (fileId: string) => {
     try {
-      const response = await fetchWithAuth(`${API_BASE_URL}/consultations/${bookingId}/files/${fileId}/download-url/`);
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error?.message || 'Could not open file.');
-      window.open(data.download_url, '_blank', 'noopener,noreferrer');
-    } catch (error) {
-      console.error('Failed to open session file:', error);
-    }
-  };
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') || '' : '';
+      const response = await fetchWithAuth(`${API_BASE_URL}/consultations/${bookingId}/files/${fileId}/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-  const authorizeExtension = () => {
-    setTimeLeft((prev) => prev + 15 * 60);
-    setShowWarning(false);
-    // TODO: Hit Django API to update escrow logic
+      if (!response.ok) {
+        throw new Error('Failed to access file.');
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Could not open file.');
+    }
   };
 
   const formatTime = (s: number) => {
@@ -192,10 +224,9 @@ export default function FigmaLiveKitStage({
   return (
     <div className="h-full flex flex-col overflow-hidden bg-background relative">
       
-      {/* 2-Minute Warning Overlay */}
       {showWarning && (
-        <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-end justify-center p-6">
-          <div className="w-full max-w-lg bg-card border-2 border-amber-400 rounded-2xl p-6 shadow-2xl">
+        <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-end justify-center p-4 sm:p-6">
+          <div className="w-full max-w-lg bg-card border-2 border-amber-400 rounded-2xl p-4 sm:p-6 shadow-2xl">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
                 <Timer className="w-5 h-5 text-amber-600" />
@@ -206,7 +237,7 @@ export default function FigmaLiveKitStage({
               </div>
             </div>
             <p className="text-sm text-muted-foreground mb-4">Both parties can authorize a <strong className="text-foreground">15-minute paid extension</strong>.</p>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <button onClick={authorizeExtension} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90">
                 Authorize 15-Min Extension
               </button>
@@ -218,56 +249,59 @@ export default function FigmaLiveKitStage({
         </div>
       )}
 
-      {/* Top Bar */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-card shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+      <div className="flex items-center justify-between px-3 sm:px-5 py-2.5 sm:py-3 border-b border-border bg-card shrink-0 gap-2">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-primary/20 flex items-center justify-center text-primary font-bold text-xs sm:text-sm shrink-0">
             J
           </div>
-          <div>
-            <p className="text-sm font-bold text-foreground">Booking #{bookingId}</p>
-            <p className="text-xs text-muted-foreground">Jogen Secure Video Session</p>
+          <div className="min-w-0">
+            <p className="text-xs sm:text-sm font-bold text-foreground truncate">Booking #{bookingId.slice(0, 8)}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">Jogen Secure Video Session</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           {timeUntilStart > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-semibold">
+            <div className="flex items-center gap-1 px-2 sm:px-3 py-1 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[10px] sm:text-xs font-semibold">
               Starts in {formatTime(timeUntilStart)}
             </div>
           )}
-          <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold tabular-nums text-sm font-mono", 
-            timeLeft <= 120 ? "bg-red-100 text-red-600" : "bg-muted text-foreground"
+          <div className={cn("flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-bold tabular-nums text-xs sm:text-sm font-mono", 
+            timeLeft <= 120 ? "bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400" : "bg-muted text-foreground"
           )}>
             <Timer className="w-3.5 h-3.5" />{formatTime(timeLeft)}
           </div>
+          
+          <button
+            type="button"
+            onClick={() => setShowMobileSidebar(!showMobileSidebar)}
+            className="md:hidden p-2 rounded-xl border border-border text-foreground hover:bg-accent transition-colors flex items-center gap-1 text-xs font-medium"
+            title="Toggle Documents & Notes"
+          >
+            <FileText className="w-4 h-4 text-primary" />
+          </button>
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex min-h-0">
-        
-        {/* Video Stage */}
-        <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-gray-900 relative overflow-hidden">
-          
-          {/* Dynamic Video Grid */}
-          <div className="flex-1 min-h-0 pb-28 p-4 grid gap-4" style={{
-            gridTemplateColumns: cameraTracks.length > 1 ? 'repeat(2, minmax(0, 1fr))' : '1fr',
+      <div className="flex-1 flex min-h-0 relative">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-gray-950 relative overflow-hidden">
+          <div className="flex-1 min-h-0 pb-24 sm:pb-28 p-2 sm:p-4 grid gap-2 sm:gap-4 overflow-y-auto" style={{
+            gridTemplateColumns: cameraTracks.length > 1 ? 'repeat(auto-fit, minmax(280px, 1fr))' : '1fr',
           }}>
             {channel !== 'video' ? (
-              <div className="col-span-full flex flex-col items-center justify-center text-gray-500">
-                <p>{channel === 'voice' ? 'Voice consultation in progress' : 'Text consultation in progress'}</p>
+              <div className="col-span-full flex flex-col items-center justify-center text-gray-400 p-6 text-center">
+                <p className="font-semibold text-sm sm:text-base">{channel === 'voice' ? 'Voice consultation in progress' : 'Text consultation in progress'}</p>
               </div>
             ) : cameraTracks.length === 0 ? (
-              <div className="col-span-full flex flex-col items-center justify-center text-gray-500">
-                <CameraOff className="w-12 h-12 mb-4 opacity-50" />
-                <p>Waiting for cameras...</p>
+              <div className="col-span-full flex flex-col items-center justify-center text-gray-500 p-6 text-center">
+                <CameraOff className="w-10 h-10 sm:w-12 sm:h-12 mb-3 opacity-50 text-gray-400" />
+                <p className="text-xs sm:text-sm font-medium">Waiting for participant cameras...</p>
               </div>
             ) : (
               cameraTracks.map((trackRef) => (
-                <div key={trackRef.publication.trackSid} className="relative w-full h-full rounded-2xl overflow-hidden bg-gray-800 border border-gray-700 shadow-xl">
+                <div key={trackRef.publication.trackSid} className="relative w-full h-48 sm:h-64 md:h-full min-h-[180px] rounded-xl sm:rounded-2xl overflow-hidden bg-gray-900 border border-gray-800 shadow-xl">
                   <VideoTrack trackRef={trackRef} className="w-full h-full object-cover" />
-                  <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg text-xs font-semibold text-white flex items-center gap-2">
+                  <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold text-white flex items-center gap-1.5">
                     {trackRef.participant.identity === localParticipant.identity ? "You" : "Expert"}
                     {!trackRef.participant.isMicrophoneEnabled && <MicOff className="w-3 h-3 text-red-400" />}
                   </div>
@@ -276,33 +310,43 @@ export default function FigmaLiveKitStage({
             )}
           </div>
 
-          {/* Controls Bar */}
-          <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-center gap-4 px-4 py-5 bg-gradient-to-t from-gray-950 via-gray-950/90 to-transparent">
-            <button onClick={toggleMic} className={cn("p-4 rounded-2xl transition-all shadow-lg", isMicrophoneEnabled ? "bg-gray-800 hover:bg-gray-700 text-white" : "bg-red-500 text-white hover:bg-red-600")}>
-              {isMicrophoneEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
+          <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-center gap-2 sm:gap-4 px-2 sm:px-4 py-3 sm:py-5 bg-gradient-to-t from-gray-950 via-gray-950/95 to-transparent">
+            <button onClick={toggleMic} className={cn("p-3 sm:p-4 rounded-xl sm:rounded-2xl transition-all shadow-lg", isMicrophoneEnabled ? "bg-gray-800 hover:bg-gray-700 text-white" : "bg-red-500 text-white hover:bg-red-600")} title="Toggle Microphone">
+              {isMicrophoneEnabled ? <Mic className="w-5 h-5 sm:w-6 sm:h-6" /> : <MicOff className="w-5 h-5 sm:w-6 sm:h-6" />}
             </button>
-            {channel === 'video' && <button onClick={toggleCam} className={cn("p-4 rounded-2xl transition-all shadow-lg", isCameraEnabled ? "bg-gray-800 hover:bg-gray-700 text-white" : "bg-red-500 text-white hover:bg-red-600")}>
-              {isCameraEnabled ? <Camera className="w-6 h-6" /> : <CameraOff className="w-6 h-6" />}
+            {channel === 'video' && <button onClick={toggleCam} className={cn("p-3 sm:p-4 rounded-xl sm:rounded-2xl transition-all shadow-lg", isCameraEnabled ? "bg-gray-800 hover:bg-gray-700 text-white" : "bg-red-500 text-white hover:bg-red-600")} title="Toggle Camera">
+              {isCameraEnabled ? <Camera className="w-5 h-5 sm:w-6 sm:h-6" /> : <CameraOff className="w-5 h-5 sm:w-6 sm:h-6" />}
             </button>}
-            {channel === 'video' && <button onClick={toggleScreenShare} className="p-4 rounded-2xl bg-gray-800 hover:bg-gray-700 text-white transition-all shadow-lg" title={isScreenSharing ? 'Stop screen sharing' : 'Share screen'}>
-              {isScreenSharing ? <ScreenShareOff className="w-6 h-6" /> : <ScreenShare className="w-6 h-6" />}
+            {channel === 'video' && <button onClick={toggleScreenShare} className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-gray-800 hover:bg-gray-700 text-white transition-all shadow-lg hidden sm:flex" title={isScreenSharing ? 'Stop screen sharing' : 'Share screen'}>
+              {isScreenSharing ? <ScreenShareOff className="w-5 h-5 sm:w-6 sm:h-6" /> : <ScreenShare className="w-5 h-5 sm:w-6 sm:h-6" />}
             </button>}
-            <button onClick={handleEndSession} className="flex items-center gap-2 px-6 py-4 rounded-2xl bg-red-600 text-white font-bold text-sm hover:bg-red-700 transition-all shadow-lg shadow-red-900/50">
-              <PhoneOff className="w-5 h-5" /> End Session
+            <button onClick={handleEndSession} className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-red-600 text-white font-bold text-xs sm:text-sm hover:bg-red-700 transition-all shadow-lg shadow-red-950/50">
+              <PhoneOff className="w-4 h-4 sm:w-5 sm:h-5" /> End Session
             </button>
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="w-72 border-l border-border flex flex-col shrink-0 bg-card/50">
-          <div className="p-4 border-b border-border">
-            <p className="text-sm font-bold text-foreground">Session Documents</p>
+        <div className={cn(
+          "border-l border-border flex flex-col shrink-0 bg-card transition-all duration-300 z-30",
+          showMobileSidebar 
+            ? "fixed inset-x-0 bottom-0 top-14 md:relative md:inset-auto md:top-auto w-full md:w-72 shadow-2xl md:shadow-none" 
+            : "hidden md:flex md:w-72"
+        )}>
+          <div className="p-3.5 sm:p-4 border-b border-border flex items-center justify-between">
+            <p className="text-xs sm:text-sm font-bold text-foreground">Session Documents</p>
+            <button
+              type="button"
+              onClick={() => setShowMobileSidebar(false)}
+              className="md:hidden p-1 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-          <div className="flex-1 p-4 overflow-y-auto">
-            <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary/40 hover:bg-accent/50 transition-colors">
-              <FileUp className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+          <div className="flex-1 p-3.5 sm:p-4 overflow-y-auto">
+            <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-border rounded-xl p-4 sm:p-6 text-center cursor-pointer hover:border-primary/40 hover:bg-accent/50 transition-colors">
+              <FileUp className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground mx-auto mb-2" />
               <p className="text-xs font-semibold text-foreground">{uploadingFile ? 'Uploading...' : 'Upload Document'}</p>
-              <p className="text-xs text-muted-foreground mt-1">PDF or images</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">PDF or images</p>
               <input ref={fileInputRef} type="file" accept="application/pdf,image/*,.doc,.docx" onChange={handleFileSelected} className="hidden" />
             </div>
             {sessionFiles.length > 0 && (
@@ -315,14 +359,14 @@ export default function FigmaLiveKitStage({
               </div>
             )}
           </div>
-          <div className="p-4 border-t border-border bg-card">
+          <div className="p-3.5 sm:p-4 border-t border-border bg-card">
             <p className="text-xs font-bold text-foreground mb-2">Private Notes</p>
             <textarea 
               value={notes} 
               onChange={(e) => setNotes(e.target.value)} 
-              rows={5} 
+              rows={4} 
               placeholder="Take notes during session. These are only visible to you..." 
-              className="w-full text-sm text-foreground bg-muted rounded-xl p-3 outline-none focus:ring-1 focus:ring-primary resize-none border border-border" 
+              className="w-full text-xs sm:text-sm text-foreground bg-muted rounded-xl p-3 outline-none focus:ring-1 focus:ring-primary resize-none border border-border" 
             />
           </div>
         </div>

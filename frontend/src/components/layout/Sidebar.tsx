@@ -49,7 +49,7 @@ export function Sidebar({
 
   return (
     <aside className={cn(
-      "border-r border-border bg-card flex flex-col shrink-0 transition-all duration-200 overflow-hidden",
+      "border-r border-border bg-card hidden md:flex flex-col shrink-0 transition-all duration-200 overflow-hidden",
       collapsed ? "w-14" : "w-56"
     )}>
       <div className="px-2.5 py-3 border-b border-border flex items-center justify-between gap-2 min-w-0">
@@ -200,5 +200,54 @@ export function Sidebar({
         </Link>
       </div>
     </aside>
+  );
+}
+
+export function MobileBottomNav() {
+  const pathname = usePathname();
+  const { userProfile, isAdmin } = useUser();
+
+  let activeId = "";
+  if (pathname === "/") activeId = "ai";
+  else if (pathname.startsWith("/experts")) activeId = "experts";
+  else if (pathname.startsWith("/bookings")) activeId = "bookings";
+  else if (pathname.startsWith("/dashboard")) activeId = "dashboard";
+  else if (pathname.startsWith("/admin")) activeId = "admin";
+  else if (pathname.startsWith("/profile")) activeId = "profile";
+
+  const mobileNavItems = [
+    { id: "ai", label: "AI", icon: MessageSquare, href: "/" },
+    { id: "experts", label: "Experts", icon: Users, href: "/experts" },
+    { id: "bookings", label: "Bookings", icon: Clock, href: "/bookings" },
+  ];
+
+  const expertDataObj = userProfile?.expert_data as any;
+  if (expertDataObj?.verification_status === "verified") {
+    mobileNavItems.push({ id: "dashboard", label: "Dashboard", icon: BarChart3, href: "/dashboard" });
+  }
+  if (isAdmin) {
+    mobileNavItems.push({ id: "admin", label: "Admin", icon: Shield, href: "/admin" });
+  }
+  mobileNavItems.push({ id: "profile", label: "Profile", icon: User, href: "/profile" });
+
+  return (
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-md border-t border-border flex items-center justify-around px-2 py-2">
+      {mobileNavItems.map(({ id, label, icon: Icon, href }) => {
+        const isActive = activeId === id;
+        return (
+          <Link
+            key={id}
+            href={href}
+            className={cn(
+              "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-semibold transition-colors",
+              isActive ? "text-primary bg-primary/10 font-bold" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Icon className="w-4 h-4" />
+            <span>{label}</span>
+          </Link>
+        );
+      })}
+    </div>
   );
 }
