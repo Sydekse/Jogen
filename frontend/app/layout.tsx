@@ -20,6 +20,8 @@ export const metadata: Metadata = {
   description: "AI Regulatory Assistant",
 };
 
+import { GoogleAuthProvider } from "@/src/context/GoogleAuthProvider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -28,15 +30,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${plusJakarta.className} antialiased bg-background text-foreground`}>
-        <UserProvider>
-          <ModalProvider>
-            <ChatProvider>
-              {children}
-              <Toaster position="bottom-right" />
-              <NotificationToasts />
-            </ChatProvider>
-          </ModalProvider>
-        </UserProvider>
+        <GoogleAuthProvider>
+          <UserProvider>
+            <ModalProvider>
+              <ChatProvider>
+                {children}
+                <Toaster position="bottom-right" />
+                <NotificationToasts />
+              </ChatProvider>
+            </ModalProvider>
+          </UserProvider>
+        </GoogleAuthProvider>
       </body>
     </html>
   );

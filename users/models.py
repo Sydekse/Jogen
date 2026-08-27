@@ -10,13 +10,16 @@ from django.utils import timezone
 
 
 class UserManager(BaseUserManager):
-    """Custom manager for User model where phone_number is the unique identifier."""
+    """Custom manager for User model where phone_number or email can identify the user."""
 
-    def create_user(self, phone_number, preferred_language="am", **extra_fields):
-        if not phone_number:
-            raise ValueError("The Phone Number field must be set")
+    def create_user(self, phone_number=None, email=None, preferred_language="am", **extra_fields):
+        if not phone_number and not email:
+            raise ValueError("Either Phone Number or Email must be provided")
         user = self.model(
-            phone_number=phone_number, preferred_language=preferred_language, **extra_fields
+            phone_number=phone_number,
+            email=email,
+            preferred_language=preferred_language,
+            **extra_fields,
         )
         user.save(using=self._db)
         return user
@@ -24,7 +27,7 @@ class UserManager(BaseUserManager):
     def create_superuser(self, phone_number, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
-        return self.create_user(phone_number, **extra_fields)
+        return self.create_user(phone_number=phone_number, **extra_fields)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -38,7 +41,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    phone_number = models.CharField(max_length=20, unique=True, db_index=True)
+    phone_number = models.CharField(max_length=20, unique=True, db_index=True, null=True, blank=True)
     full_name = models.CharField(max_length=255, blank=True)
     email = models.EmailField(max_length=254, unique=True, null=True, blank=True)
     profile_picture = models.ImageField(upload_to="profile_pics/", null=True, blank=True)
@@ -66,4 +69,4 @@ class User(AbstractBaseUser, PermissionsMixin):
         self.save()
 
     def __str__(self):
-        return self.phone_number
+        return self.phone_number or self.email or str(self.id)
