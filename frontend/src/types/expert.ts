@@ -16,6 +16,7 @@ export interface ExpertListItem {
 export interface ExpertDetail extends ExpertListItem {
   bio: string;
   availability: Record<string, string[]>;
+  booked_slots?: Array<{ start: string; end: string }>;
 }
 
 export interface ExpertFilterParams {

@@ -86,6 +86,7 @@ class ExpertDetailSerializer(serializers.ModelSerializer):
     profile_picture = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
     total_reviews = serializers.SerializerMethodField()
+    booked_slots = serializers.SerializerMethodField()
 
     class Meta:
         model = Expert
@@ -98,6 +99,7 @@ class ExpertDetailSerializer(serializers.ModelSerializer):
             "specialty_tags",
             "rate_per_session",
             "availability",
+            "booked_slots",
             "average_rating",
             "total_reviews",
         ]
@@ -114,3 +116,24 @@ class ExpertDetailSerializer(serializers.ModelSerializer):
 
     def get_total_reviews(self, obj):
         return obj.reviews.count()
+
+    def get_booked_slots(self, obj):
+        from datetime import timedelta
+        from django.utils import timezone
+        from bookings.models import Booking
+
+        # Filter active reservations (pending, escrowed, completed) that haven't expired
+        bookings = Booking.objects.filter(
+            expert=obj,
+            status__in=["pending_payment", "escrowed", "completed"],
+            scheduled_end__gte=timezone.now() - timedelta(hours=1),
+        ).values_list("scheduled_start", "scheduled_end")
+
+        return [
+            {
+                "start": start.isoformat(),
+                "end": end.isoformat(),
+            }
+            for start, end in bookings
+        ]
+
