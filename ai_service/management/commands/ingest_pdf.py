@@ -2,11 +2,10 @@ import os
 import re
 import time
 
+import cohere
 import fitz  # PyMuPDF
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from google import genai
-from google.genai import types
 
 from ai_service.models import LegalDocumentEmbedding
 
@@ -14,7 +13,7 @@ from ai_service.models import LegalDocumentEmbedding
 class Command(BaseCommand):
     help = (
         "Batch parses a folder of 2-column bilingual legal PDFs, "
-        "chunks by Article, and embeds into pgvector."
+        "chunks by Article, and embeds into pgvector using Cohere."
     )
 
     def add_arguments(self, parser):
@@ -115,21 +114,16 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(f"No PDFs found in {target_dir}"))
             return
 
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            self.stderr.write(
-                self.style.ERROR("GEMINI_API_KEY missing from environment variables.")
-            )
+        cohere_api_key = os.getenv("COHERE_API_KEY")
+        if not cohere_api_key:
+            self.stderr.write(self.style.ERROR("COHERE_API_KEY missing from environment variables."))
             return
 
-        # Initialize the modern GenAI Client
-        client = genai.Client(api_key=api_key)
-        # The correct, active Gemini embedding model
-        embedding_model = "gemini-embedding-001"
+        # Initialize the Cohere Client
+        client = cohere.Client(cohere_api_key)
+        embedding_model = "embed-multilingual-v3.0"
 
-        self.stdout.write(
-            self.style.SUCCESS(f"Found {len(pdf_files)} PDF(s). Starting batch ingestion...")
-        )
+        self.stdout.write(self.style.SUCCESS(f"Found {len(pdf_files)} PDF(s). Starting batch ingestion..."))
 
         for filename in pdf_files:
             pdf_path = os.path.join(target_dir, filename)
@@ -151,17 +145,15 @@ class Command(BaseCommand):
             self.stdout.write(f"Generated {len(all_chunks)} semantic chunks. Embedding...")
 
             # 4. Generate Embeddings & Save to pgvector (Batched with Backoff)
-            batch_size = 100  # API limit for batching embeddings
+            batch_size = 96  # Cohere embed API batch limit
             saved_count = 0
 
-            # Loop through chunks in batches of 100
+            # Loop through chunks in batches of 96
             for i in range(0, len(all_chunks), batch_size):
                 batch = all_chunks[i : i + batch_size]
 
                 # Prepare the list of strings for the batch API request
-                texts_to_embed = [
-                    " ".join(chunk[0].split()) for chunk in batch if len(chunk[0].strip()) >= 40
-                ]
+                texts_to_embed = [" ".join(chunk[0].split()) for chunk in batch if len(chunk[0].strip()) >= 40]
 
                 if not texts_to_embed:
                     continue
@@ -169,25 +161,21 @@ class Command(BaseCommand):
                 max_retries = 6
                 for attempt in range(max_retries):
                     try:
-                        # By passing a list of strings, the SDK automatically batches them
-                        result = client.models.embed_content(
+                        response = client.embed(
+                            texts=texts_to_embed,
                             model=embedding_model,
-                            contents=texts_to_embed,
-                            config=types.EmbedContentConfig(
-                                task_type="RETRIEVAL_DOCUMENT", output_dimensionality=768
-                            ),
+                            input_type="search_document",
                         )
 
                         # Save the batched vectors to the database
-                        for j, embedding_obj in enumerate(result.embeddings):
+                        for j, embedding_vec in enumerate(response.embeddings):
                             chunk_text = texts_to_embed[j]
-                            # Retrieve the original chunk_ref from the batch list
                             chunk_ref = batch[j][1]
 
                             LegalDocumentEmbedding.objects.create(
                                 doc_reference=chunk_ref,
                                 content_chunk=chunk_text,
-                                embedding=embedding_obj.values,
+                                embedding=embedding_vec,
                             )
                             saved_count += 1
 
@@ -196,13 +184,11 @@ class Command(BaseCommand):
 
                     except Exception as e:
                         error_msg = str(e).lower()
-                        if "429" in error_msg or "resource_exhausted" in error_msg:
+                        if "429" in error_msg or "rate" in error_msg or "too_many_requests" in error_msg:
                             # Exponential backoff: 1, 2, 4, 8, 16, 32 seconds
                             wait_time = 2**attempt
                             self.stdout.write(
-                                self.style.WARNING(
-                                    f"Rate limited (429). Retrying batch in {wait_time}s..."
-                                )
+                                self.style.WARNING(f"Rate limited (429). Retrying batch in {wait_time}s...")
                             )
                             time.sleep(wait_time)
                         else:
@@ -212,8 +198,6 @@ class Command(BaseCommand):
                 if saved_count % 100 == 0 and saved_count > 0:
                     self.stdout.write(f"Ingested {saved_count}/{len(all_chunks)} chunks...")
 
-            self.stdout.write(
-                self.style.SUCCESS(f"Finished {filename}: Ingested {saved_count} chunks.")
-            )
+            self.stdout.write(self.style.SUCCESS(f"Finished {filename}: Ingested {saved_count} chunks."))
 
         self.stdout.write(self.style.SUCCESS("\nBatch processing complete!"))
