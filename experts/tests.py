@@ -193,9 +193,11 @@ def test_get_single_expert_detail_and_availability():
     assert len(res_detail.data["booked_slots"]) == 0
 
     # Create a booking and verify booked_slots
-    from bookings.models import Booking
-    from django.utils import timezone
     from datetime import timedelta
+
+    from django.utils import timezone
+
+    from bookings.models import Booking
     client_user = User.objects.create_user(phone_number="+251911444444")
     now = timezone.now()
     Booking.objects.create(

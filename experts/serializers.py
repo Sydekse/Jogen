@@ -119,7 +119,9 @@ class ExpertDetailSerializer(serializers.ModelSerializer):
 
     def get_booked_slots(self, obj):
         from datetime import timedelta
+
         from django.utils import timezone
+
         from bookings.models import Booking
 
         # Filter active reservations (pending, escrowed, completed) that haven't expired
