@@ -10,6 +10,7 @@ interface BookingCheckoutModalProps {
   expert: ExpertDetail;
   selectedDay: string;
   selectedSlot: string; // e.g. "09:00 AM"
+  selectedDate?: Date;
   duration: number;
   initialChannel: BookingChannel;
   onClose: () => void;
@@ -20,6 +21,7 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
   expert,
   selectedDay,
   selectedSlot,
+  selectedDate,
   duration,
   initialChannel,
   onClose,
@@ -52,26 +54,31 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
       endM -= 60;
     }
 
-    const daysMap: Record<string, number> = {
-      'sun': 0, 'mon': 1, 'tue': 2, 'wed': 3, 'thu': 4, 'fri': 5, 'sat': 6
-    };
-    
-    const targetDay = daysMap[selectedDay.toLowerCase()] ?? today.getDay();
-    let diff = targetDay - today.getDay();
-    
-    if (diff < 0) {
-      diff += 7;
-    }
-    
-    // If it's today but the selected time has already passed, push it to next week
-    if (diff === 0) {
-      if (startH < today.getHours() || (startH === today.getHours() && startM <= today.getMinutes())) {
-         diff += 7;
+    let targetDate: Date;
+    if (selectedDate) {
+      targetDate = new Date(selectedDate);
+    } else {
+      const daysMap: Record<string, number> = {
+        'sun': 0, 'mon': 1, 'tue': 2, 'wed': 3, 'thu': 4, 'fri': 5, 'sat': 6
+      };
+      
+      const targetDay = daysMap[selectedDay.toLowerCase()] ?? today.getDay();
+      let diff = targetDay - today.getDay();
+      
+      if (diff < 0) {
+        diff += 7;
       }
-    }
+      
+      // If it's today but the selected time has already passed, push it to next week
+      if (diff === 0) {
+        if (startH < today.getHours() || (startH === today.getHours() && startM <= today.getMinutes())) {
+           diff += 7;
+        }
+      }
 
-    const targetDate = new Date(today);
-    targetDate.setDate(today.getDate() + diff);
+      targetDate = new Date(today);
+      targetDate.setDate(today.getDate() + diff);
+    }
 
     const startTime = new Date(targetDate);
     startTime.setHours(startH || 9, startM || 0, 0, 0);
@@ -161,8 +168,10 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
               <p className="text-xs text-primary font-medium">{expert.title}</p>
             </div>
               <span className="text-xs font-semibold px-2 py-0.5 bg-primary/15 text-primary rounded-md">
-              {selectedDay.toUpperCase()} ({selectedSlot})
-            </span>
+                {selectedDate
+                  ? selectedDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+                  : selectedDay.toUpperCase()} ({selectedSlot})
+              </span>
           </div>
         </div>
 

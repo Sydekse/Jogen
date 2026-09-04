@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Star, CheckCircle,
-  Video, Phone, MessageCircle
+  Video, Phone, MessageCircle,
+  ChevronLeft, ChevronRight, Calendar
 } from 'lucide-react';
 import { expertService } from '@/src/services/expertService';
 import { reviewService } from '@/src/services/reviewService';
@@ -44,15 +45,8 @@ function generateSlots(timeRanges: string[]) {
     let currentM = startM;
 
     while (currentH < endH || (currentH === endH && currentM < endM)) {
-      let nextH = currentH;
-      let nextM = currentM + 30;
-      if (nextM >= 60) {
-        nextH += 1;
-        nextM -= 60;
-      }
-      if (nextH > endH || (nextH === endH && nextM > endM)) {
-        break;
-      }
+      const nextM = currentM + 30;
+      const nextH = currentH + Math.floor(nextM / 60);
 
       const formatTime = (h: number, m: number) => {
         const ampm = h >= 12 ? 'PM' : 'AM';
@@ -63,11 +57,14 @@ function generateSlots(timeRanges: string[]) {
       slots.add(formatTime(currentH, currentM));
 
       currentH = nextH;
-      currentM = nextM;
+      currentM = nextM % 60;
     }
   }
   return [...slots];
 }
+
+const WEEK_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+type DayKey = typeof WEEK_DAYS[number];
 
 export function ExpertProfile({ expertId }: { expertId: string }) {
   const router = useRouter();
@@ -78,8 +75,9 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [imgError, setImgError] = useState(false);
 
-  // Booking State
-  const [selectedDay, setSelectedDay] = useState<string>('');
+  // Booking & Multi-Week State
+  const [weekOffset, setWeekOffset] = useState<number>(0);
+  const [selectedDateKey, setSelectedDateKey] = useState<string>('');
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [mode, setMode] = useState<"voice" | "video" | "text">("voice");
   const [duration, setDuration] = useState(30);
@@ -90,8 +88,6 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
     expertService.getExpertDetail(expertId)
       .then(data => {
         setExpert(data);
-        const days = Object.keys(data.availability || {}).filter(day => data.availability[day]?.length > 0);
-        if (days.length > 0) setSelectedDay(days[0]);
       })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
@@ -101,6 +97,137 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
       .catch(err => console.error("Failed to load reviews:", err));
   }, [expertId]);
 
+  const todayDateKey = useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }, []);
+
+  // Compute 7 days for the active weekOffset
+  const currentWeekDates = useMemo(() => {
+    const now = new Date();
+    const todayDayOfWeek = now.getDay();
+    const distToMonday = todayDayOfWeek === 0 ? -6 : 1 - todayDayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + distToMonday + weekOffset * 7);
+    monday.setHours(0, 0, 0, 0);
+
+    return WEEK_DAYS.map((dayKey, index) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + index);
+      const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const isToday = dateKey === todayDateKey;
+      const isPast = d < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      // Resolve availability: check date-specific override first, then fallback to recurring dayKey
+      const dateOverride = expert?.availability?.[dateKey];
+      const recurring = expert?.availability?.[dayKey] || [];
+      const activeRanges = dateOverride !== undefined ? dateOverride : recurring;
+      const allSlots = generateSlots(activeRanges);
+
+      // Filter slots: remove past times if today, and remove already booked slots
+      const validSlots = isPast
+        ? []
+        : allSlots.filter(slot => {
+            const isPM = slot.includes('PM');
+            const [hStr, mStr] = slot.split(' ')[0].split(':');
+            let h = parseInt(hStr, 10);
+            const m = parseInt(mStr, 10);
+            if (isPM && h !== 12) h += 12;
+            if (!isPM && h === 12) h = 0;
+
+            const slotStart = new Date(d);
+            slotStart.setHours(h, m, 0, 0);
+
+            // If today, cannot book slots that already passed
+            if (isToday && slotStart <= now) {
+              return false;
+            }
+
+            const slotEnd = new Date(slotStart.getTime() + 30 * 60000);
+
+            // Filter out if booked by another client
+            if (expert?.booked_slots && expert.booked_slots.length > 0) {
+              const isOverlapping = expert.booked_slots.some(b => {
+                const bStart = new Date(b.start);
+                const bEnd = new Date(b.end);
+                return slotStart < bEnd && slotEnd > bStart;
+              });
+              if (isOverlapping) {
+                return false;
+              }
+            }
+
+            return true;
+          });
+
+      return {
+        dayKey,
+        date: d,
+        dateKey,
+        dayName: d.toLocaleDateString(undefined, { weekday: 'short' }),
+        dayNumber: d.getDate(),
+        shortDay: dayKey.toUpperCase(),
+        shortDate: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+        isToday,
+        isPast,
+        slots: validSlots,
+        hasSlots: validSlots.length > 0,
+      };
+    });
+  }, [expert, weekOffset]);
+
+  // Clean human date range label without week numbers
+  const weekRangeLabel = useMemo(() => {
+    if (!currentWeekDates || currentWeekDates.length < 7) return '';
+    const monday = currentWeekDates[0].date;
+    const sunday = currentWeekDates[6].date;
+    const mMonth = monday.toLocaleDateString(undefined, { month: 'short' });
+    const sMonth = sunday.toLocaleDateString(undefined, { month: 'short' });
+    const mYear = monday.getFullYear();
+    const sYear = sunday.getFullYear();
+
+    if (mMonth === sMonth && mYear === sYear) {
+      return `${mMonth} ${monday.getDate()} – ${sunday.getDate()}, ${mYear}`;
+    }
+    if (mYear === sYear) {
+      return `${mMonth} ${monday.getDate()} – ${sMonth} ${sunday.getDate()}, ${mYear}`;
+    }
+    return `${mMonth} ${monday.getDate()}, ${mYear} – ${sMonth} ${sunday.getDate()}, ${sYear}`;
+  }, [currentWeekDates]);
+
+  // Set default selected date key when week dates load or week changes
+  useEffect(() => {
+    if (currentWeekDates.length > 0) {
+      const currentSelected = currentWeekDates.find(w => w.dateKey === selectedDateKey);
+      // Only set a default if there is no date selected yet or the selected date is in a different week
+      if (!currentSelected) {
+        if (weekOffset === 0) {
+          // On current week, ALWAYS default directly to today
+          const todayItem = currentWeekDates.find(w => w.dateKey === todayDateKey);
+          setSelectedDateKey(todayItem ? todayItem.dateKey : currentWeekDates[0].dateKey);
+        } else {
+          // On future weeks, pick first day with slots, or default to first day of that week
+          const firstAvailable = currentWeekDates.find(w => w.hasSlots);
+          setSelectedDateKey(firstAvailable ? firstAvailable.dateKey : currentWeekDates[0].dateKey);
+        }
+        setSelectedSlot(null);
+      }
+    }
+  }, [currentWeekDates, selectedDateKey, weekOffset, todayDateKey]);
+
+  const activeDateItem = currentWeekDates.find(w => w.dateKey === selectedDateKey) || currentWeekDates[0];
+  const availableSlots = activeDateItem?.slots || [];
+
+  // Financial Calculations
+  const perMinuteRate = Math.round(Number(expert?.rate_per_session || 0) / 30);
+  const total = perMinuteRate * duration;
+  const platformFee = Math.round(total * 0.0125);
+
+  const handleBook = () => {
+    if (!selectedSlot || !activeDateItem) return;
+    setShowCheckout(true);
+  };
+
   if (loading) {
     return <div className="p-8 text-center text-muted-foreground animate-pulse">Loading expert profile...</div>;
   }
@@ -108,38 +235,6 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
   if (error || !expert) {
     return <div className="p-8 text-center text-destructive">Failed to load expert profile. {error}</div>;
   }
-
-  const daysMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-  const todayStr = daysMap[new Date().getDay()];
-
-  const availableDays = Object.keys(expert.availability || {}).filter(day => expert.availability[day]?.length > 0);
-  let availableSlots = selectedDay ? generateSlots(expert.availability[selectedDay] || []) : [];
-
-  if (selectedDay === todayStr) {
-    const now = new Date();
-    availableSlots = availableSlots.filter(slot => {
-      const isPM = slot.includes('PM');
-      const [hStr, mStr] = slot.split(' ')[0].split(':');
-      let h = parseInt(hStr, 10);
-      const m = parseInt(mStr, 10);
-      if (isPM && h !== 12) h += 12;
-      if (!isPM && h === 12) h = 0;
-      
-      const slotDate = new Date();
-      slotDate.setHours(h, m, 0, 0);
-      return slotDate > now;
-    });
-  }
-
-  // Financial Calculations
-  const perMinuteRate = Math.round(Number(expert.rate_per_session) / 30); // Assuming rate_per_session in DB is for 30 mins
-  const total = perMinuteRate * duration;
-  const platformFee = Math.round(total * 0.0125);
-
-  const handleBook = () => {
-    if (!selectedSlot) return;
-    setShowCheckout(true);
-  };
 
   return (
     <div className="h-full overflow-auto bg-background">
@@ -232,41 +327,135 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
             <div className="bg-card border border-border rounded-2xl p-5 sticky top-20 shadow-sm">
               <h3 className="font-bold text-foreground mb-4">Book a Consultation</h3>
 
-              {/* Day Selection */}
+              {/* Date & Week Selection */}
               <div className="mb-4">
-                <p className="text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">Day</p>
-                {availableDays.length === 0 ? (
-                  <div className="py-3 px-4 bg-muted/50 rounded-xl text-sm text-muted-foreground">No availability set.</div>
-                ) : (
-                  <div className="flex flex-wrap gap-1.5">
-                    {availableDays.map((day) => (
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-primary" />
+                    Select Date
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      disabled={weekOffset === 0}
+                      onClick={() => setWeekOffset(prev => Math.max(0, prev - 1))}
+                      className="p-1 rounded-lg border border-border bg-background hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                      title="Previous week"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-xs font-semibold px-2 text-foreground min-w-[120px] text-center">
+                      {weekRangeLabel}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={weekOffset >= 26}
+                      onClick={() => setWeekOffset(prev => prev + 1)}
+                      className="p-1 rounded-lg border border-border bg-background hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                      title="Next week"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                    {(weekOffset !== 0 || selectedDateKey !== todayDateKey) && (
                       <button
-                        key={day}
-                        onClick={() => { setSelectedDay(day); setSelectedSlot(null); }}
-                        className={cn("py-2 px-3 rounded-xl text-xs font-bold transition-colors capitalize",
-                          selectedDay === day ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
-                        )}>
-                        {day === todayStr ? "Today" : day.substring(0, 3)}
+                        type="button"
+                        onClick={() => {
+                          setWeekOffset(0);
+                          setSelectedDateKey(todayDateKey);
+                          setSelectedSlot(null);
+                        }}
+                        className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors ml-0.5"
+                        title="Jump to today"
+                      >
+                        Today
                       </button>
-                    ))}
+                    )}
                   </div>
+                </div>
+
+                {/* Horizontal 7-Day Strip */}
+                <div className="grid grid-cols-7 gap-1 bg-muted/40 p-1.5 rounded-xl border border-border">
+                  {currentWeekDates.map((dayItem) => {
+                    const isSelected = selectedDateKey === dayItem.dateKey;
+                    return (
+                      <button
+                        key={dayItem.dateKey}
+                        type="button"
+                        onClick={() => {
+                          setSelectedDateKey(dayItem.dateKey);
+                          setSelectedSlot(null);
+                        }}
+                        className={cn(
+                          "flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs transition-all relative",
+                          isSelected
+                            ? "bg-primary text-primary-foreground font-bold shadow-sm"
+                            : dayItem.isPast
+                            ? "opacity-50 hover:opacity-85 text-muted-foreground hover:bg-background/60"
+                            : dayItem.hasSlots
+                            ? "hover:bg-background text-foreground hover:shadow-xs font-medium"
+                            : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
+                        )}
+                      >
+                        <span className="text-[10px] uppercase tracking-tighter opacity-80">
+                          {dayItem.dayName}
+                        </span>
+                        <span className={cn("text-xs leading-none my-0.5", isSelected ? "font-extrabold" : "font-semibold")}>
+                          {dayItem.dayNumber}
+                        </span>
+                        {dayItem.hasSlots ? (
+                          <span className={cn(
+                            "w-1.5 h-1.5 rounded-full mt-0.5",
+                            isSelected ? "bg-primary-foreground" : "bg-primary"
+                          )} />
+                        ) : (
+                          <span className="text-[9px] text-muted-foreground/60 leading-none mt-0.5">
+                            -
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {activeDateItem && (
+                  <p className="text-[11px] text-muted-foreground mt-1.5 px-0.5">
+                    {activeDateItem.date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
+                    {activeDateItem.isToday && " (Today)"}
+                  </p>
                 )}
               </div>
 
               {/* Time Selection */}
               <div className="mb-4">
-                <p className="text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">Time Slot</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Time Slot {availableSlots.length > 0 && `(${availableSlots.length})`}
+                  </p>
+                </div>
                 {availableSlots.length === 0 ? (
-                  <div className="py-3 px-4 bg-muted/50 rounded-xl text-sm text-muted-foreground">Please select an available day.</div>
+                  <div className="py-4 px-3 bg-muted/40 rounded-xl text-center border border-dashed border-border">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      No slots available on this date.
+                    </p>
+                    <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+                      {activeDateItem?.isPast
+                        ? "This date has already passed. Please select an upcoming date."
+                        : "Please pick another day or advance to next week."}
+                    </p>
+                  </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-1.5">
+                  <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1">
                     {availableSlots.map((slot) => (
                       <button
                         key={slot}
+                        type="button"
                         onClick={() => setSelectedSlot(slot)}
-                        className={cn("py-2 px-2 rounded-xl text-xs font-semibold transition-colors",
-                          selectedSlot === slot ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
-                        )}>
+                        className={cn(
+                          "py-2 px-2.5 rounded-xl text-xs font-medium transition-all border text-center",
+                          selectedSlot === slot
+                            ? "bg-primary text-primary-foreground border-primary font-bold shadow-sm"
+                            : "bg-muted/40 hover:bg-muted border-border/60 text-foreground hover:border-border"
+                        )}
+                      >
                         {slot}
                       </button>
                     ))}
@@ -334,13 +523,19 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
       {showCheckout && (
         <BookingCheckoutModal
           expert={expert}
-          selectedDay={selectedDay}
+          selectedDay={activeDateItem?.dayKey || 'mon'}
+          selectedDate={activeDateItem?.date}
           selectedSlot={selectedSlot!}
           duration={duration}
           initialChannel={mode === "text" ? "chat" : mode}
           onClose={() => setShowCheckout(false)}
           onSuccess={() => {
             setShowCheckout(false);
+            if (expertId) {
+              expertService.getExpertDetail(expertId)
+                .then(data => setExpert(data))
+                .catch(console.error);
+            }
             router.push('/dashboard');
           }}
         />

@@ -189,8 +189,31 @@ def test_get_single_expert_detail_and_availability():
     assert (
         res_detail.data["bio"] == "Specializing in Ethiopian foreign investment and startup laws."
     )
+    assert "booked_slots" in res_detail.data
+    assert len(res_detail.data["booked_slots"]) == 0
+
+    # Create a booking and verify booked_slots
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from bookings.models import Booking
+    client_user = User.objects.create_user(phone_number="+251911444444")
+    now = timezone.now()
+    Booking.objects.create(
+        client=client_user,
+        expert=expert,
+        scheduled_start=now + timedelta(days=1),
+        scheduled_end=now + timedelta(days=1, minutes=30),
+        rate_snapshot=1500.00,
+        status="escrowed",
+    )
+
+    res_detail2 = client.get(f"/api/v1/experts/{expert.id}")
+    assert len(res_detail2.data["booked_slots"]) == 1
 
     # GET /api/v1/experts/{id}/availability
     res_avail = client.get(f"/api/v1/experts/{expert.id}/availability")
     assert res_avail.status_code == 200
     assert res_avail.data["availability"]["tue"] == ["09:00-12:00"]
+

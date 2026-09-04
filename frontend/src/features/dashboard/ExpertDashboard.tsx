@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart3, Clock, DollarSign, Users, ChevronRight, X } from 'lucide-react';
 import { WalletLinkingCard } from './WalletLinkingCard';
+import { ExpertAvailabilityManager } from './ExpertAvailabilityManager';
 import { bookingService } from '@/src/services/bookingService';
 import { BookingDetail } from '@/src/types/booking';
 import { useUser } from '@/src/context/UserContext';
@@ -81,7 +82,7 @@ export function ExpertDashboard() {
       });
 
       if (resProfile.ok && resAvailability.ok) {
-        await showAlert('Configuration saved!');
+        await showAlert('Configuration saved successfully!');
         if (refreshProfile) refreshProfile();
       } else {
         await showAlert('Failed to save config.');
@@ -93,44 +94,6 @@ export function ExpertDashboard() {
     }
   };
 
-  // toggleDay is no longer needed since we handle it directly in the UI map
-
-  const WEEK_DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-  const TIME_SLOTS = Array.from({ length: 25 }, (_, index) => {
-    const totalMinutes = 8 * 60 + index * 30;
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    const displayHour = hours % 12 || 12;
-    return `${displayHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${hours >= 12 ? 'PM' : 'AM'}`;
-  });
-
-  const slotToRange = (slot: string) => {
-    const [time, meridiem] = slot.split(' ');
-    const [hourText, minuteText] = time.split(':');
-    let hours = Number(hourText);
-    const minutes = Number(minuteText);
-    if (meridiem === 'PM' && hours !== 12) hours += 12;
-    if (meridiem === 'AM' && hours === 12) hours = 0;
-    const endMinutes = hours * 60 + minutes + 30;
-    const endHours = Math.floor(endMinutes / 60);
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}-${endHours.toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
-  };
-
-  const toggleSlot = (day: string, slot: string) => {
-    setAvailability(prev => {
-      const next = { ...prev };
-      const range = slotToRange(slot);
-      if (!next[day]) next[day] = [];
-      
-      if (next[day].includes(range)) {
-        next[day] = next[day].filter(r => r !== range);
-      } else {
-        next[day] = [...next[day], range];
-      }
-      return next;
-    });
-  };
-
   useEffect(() => {
     const fetchStats = async () => {
       const token = localStorage.getItem('access_token');
@@ -140,9 +103,6 @@ export function ExpertDashboard() {
       }
       try {
         const data = await bookingService.getBookings(token);
-        // data will include all bookings where user is client or expert.
-        // But since this is the expert dashboard, we assume they are the expert here.
-        // We'll just process the data as is.
         setBookings(data);
       } catch (e) {
         console.error(e);
@@ -204,10 +164,11 @@ export function ExpertDashboard() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Expert Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Overview of your consulting practice on Jogen.
+          Overview of your consulting practice and schedule on Jogen.
         </p>
       </div>
 
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         {stats.map((stat, i) => (
           <div key={i} className="bg-card border border-border rounded-2xl p-5 shadow-sm">
@@ -229,6 +190,7 @@ export function ExpertDashboard() {
         ))}
       </div>
 
+      {/* Row 1: Recent Requests & Profile Configuration */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6">
           <div className="flex items-center justify-between mb-6">
@@ -255,95 +217,83 @@ export function ExpertDashboard() {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-2xl p-6">
-          <h3 className="font-bold text-lg text-foreground mb-6">Expert Configuration</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-1.5">Price per Hour (ETB)</label>
-              <input
-                type="number"
-                value={rate}
-                onChange={(e) => setRate(e.target.value)}
-                className="w-full px-4 py-2 bg-muted border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
-                placeholder="e.g. 1500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-1.5">Specialties</label>
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {specialtyTags.map((tag, i) => (
-                  <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
-                    {tag}
-                    <button onClick={() => setSpecialtyTags(prev => prev.filter((_, idx) => idx !== i))} className="hover:text-primary/70"><X className="w-3 h-3" /></button>
-                  </span>
-                ))}
+        {/* Profile & Wallet Column */}
+        <div className="space-y-6">
+          <div className="bg-card border border-border rounded-2xl p-6">
+            <h3 className="font-bold text-lg text-foreground mb-4">Pricing & Specialties</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">Price per Session (ETB)</label>
+                <input
+                  type="number"
+                  value={rate}
+                  onChange={(e) => setRate(e.target.value)}
+                  className="w-full px-4 py-2 bg-muted border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
+                  placeholder="e.g. 1500"
+                />
               </div>
-              <input
-                type="text"
-                placeholder="Type and press Enter to add..."
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const val = e.currentTarget.value.trim();
-                    if (val && !specialtyTags.includes(val)) {
-                      setSpecialtyTags(prev => [...prev, val]);
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">Specialties</label>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {specialtyTags.map((tag, i) => (
+                    <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
+                      {tag}
+                      <button onClick={() => setSpecialtyTags(prev => prev.filter((_, idx) => idx !== i))} className="hover:text-primary/70"><X className="w-3 h-3" /></button>
+                    </span>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  placeholder="Type and press Enter to add..."
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const val = e.currentTarget.value.trim();
+                      if (val && !specialtyTags.includes(val)) {
+                        setSpecialtyTags(prev => [...prev, val]);
+                      }
+                      e.currentTarget.value = '';
                     }
-                    e.currentTarget.value = '';
-                  }
-                }}
-                className="w-full px-4 py-2 bg-muted border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
-              />
+                  }}
+                  className="w-full px-4 py-2 bg-muted border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
+                />
+              </div>
+              <button 
+                onClick={handleUpdateConfig}
+                disabled={updatingConfig}
+                className="w-full mt-2 text-center px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {updatingConfig ? 'Saving...' : 'Save Profile & Pricing'}
+              </button>
             </div>
-              <div className="flex items-center justify-between mb-5">
-                <label className="block text-sm font-semibold text-foreground">Weekly Availability</label>
-                <button className="text-xs font-semibold text-primary hover:opacity-70">
-                  + Add Exception
-                </button>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-                {WEEK_DAYS.map((day) => (
-                  <div key={day}>
-                    <p className="text-xs font-bold text-center text-muted-foreground mb-2 uppercase tracking-wide">
-                      {day}
-                    </p>
-                    <div className="space-y-1.5">
-                      {TIME_SLOTS.map((slot) => {
-                        const range = slotToRange(slot);
-                        const isActive = availability[day]?.includes(range);
-                        return (
-                          <div 
-                            key={slot} 
-                            onClick={() => toggleSlot(day, slot)}
-                            className={`py-1.5 px-1 rounded-lg text-center text-xs font-semibold cursor-pointer transition-colors ${
-                              isActive 
-                                ? "bg-primary text-primary-foreground border-transparent shadow-sm" 
-                                : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary border border-transparent"
-                            }`}
-                          >
-                            {slot.replace(" AM", "a").replace(" PM", "p")}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            <button 
-              onClick={handleUpdateConfig}
-              disabled={updatingConfig}
-              className="w-full mt-2 text-center px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              {updatingConfig ? 'Saving...' : 'Save Configuration'}
-            </button>
           </div>
-        </div>
 
-        {/* New Wallet Linking Card */}
-        <WalletLinkingCard
-          walletProvider={expertDataObj.wallet_provider}
-          walletAccountNumber={expertDataObj.wallet_account_number}
+          <WalletLinkingCard
+            walletProvider={expertDataObj.wallet_provider}
+            walletAccountNumber={expertDataObj.wallet_account_number}
+          />
+        </div>
+      </div>
+
+      {/* Row 2: Full-Width Redesigned Availability & Multi-Week Manager */}
+      <div className="space-y-4">
+        <ExpertAvailabilityManager
+          availability={availability}
+          onChange={setAvailability}
+          disabled={updatingConfig}
+          bookings={bookings}
         />
+        <div className="flex items-center justify-end gap-3">
+          <button 
+            onClick={handleUpdateConfig}
+            disabled={updatingConfig}
+            className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 shadow-sm"
+          >
+            {updatingConfig ? 'Saving Changes...' : 'Save Availability Schedule'}
+          </button>
+        </div>
       </div>
     </div>
   );
 }
+
