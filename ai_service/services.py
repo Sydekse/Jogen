@@ -1,5 +1,6 @@
 import os
 
+import cohere
 from google import genai
 from pgvector.django import CosineDistance
 
@@ -8,36 +9,42 @@ from .models import LegalDocumentEmbedding
 
 class RAGPipelineService:
     """
-    Executes Retrieval-Augmented Generation (RAG) using pgvector
-    and Google Gemini for both embeddings and chat.
+    Executes Retrieval-Augmented Generation (RAG) using pgvector,
+    Cohere for embeddings, and Google Gemini for chat.
     """
 
     def __init__(self):
         # Configure the new Gemini Client
-        api_key = os.getenv("GEMINI_API_KEY")
-        self.client = genai.Client(api_key=api_key)
+        gemini_api_key = os.getenv("GEMINI_API_KEY")
+        self.client = genai.Client(api_key=gemini_api_key)
+
+        # Configure the Cohere Client for embeddings
+        cohere_api_key = os.getenv("COHERE_API_KEY")
+        try:
+            self.cohere_client = cohere.Client(cohere_api_key)
+        except Exception:
+            self.cohere_client = None
 
         # Use the current 2026 models
-        self.embedding_model = "models/gemini-embedding-001"
+        self.embedding_model = "embed-multilingual-v3.0"
         self.llm_model = "gemini-3.6-flash"
 
     def generate_embedding(self, text: str) -> list[float]:
-        """Generate a 768-dimensional vector embedding using Gemini API."""
-        result = self.client.models.embed_content(
+        """Generate a 1024-dimensional vector embedding using Cohere API."""
+        if not self.cohere_client:
+            raise RuntimeError("COHERE_API_KEY is not configured or Cohere client failed to initialize.")
+        response = self.cohere_client.embed(
+            texts=[text],
             model=self.embedding_model,
-            contents=text,
-            # We force it to output 768 to match the PostgreSQL db
-            config=genai.types.EmbedContentConfig(
-                task_type="RETRIEVAL_QUERY", output_dimensionality=768
-            ),
+            input_type="search_query",
         )
-        return result.embeddings[0].values
+        return response.embeddings[0]
 
     def retrieve_context(
         self, query_vector: list[float], top_k: int = 7, language: str = "en"
     ) -> list[LegalDocumentEmbedding]:
-        lang_tag = "(English)" if language == "en" else "(Amharic)"
         """Perform vector cosine distance search in pgvector database."""
+        lang_tag = "(English)" if language == "en" else "(Amharic)"
         return (
             LegalDocumentEmbedding.objects.filter(doc_reference__icontains=lang_tag)
             .annotate(distance=CosineDistance("embedding", query_vector))
@@ -46,9 +53,9 @@ class RAGPipelineService:
 
     def execute_rag_query(self, user_query: str, target_language: str = "en") -> dict:
         """
-        Full RAG Pipeline: Query -> Gemini Embedding -> Vector Search -> Gemini Answer
+        Full RAG Pipeline: Query -> Cohere Embedding -> Vector Search -> Gemini Answer
         """
-        # 1. Generate query embedding via Gemini API
+        # 1. Generate query embedding via Cohere API
         try:
             query_vector = self.generate_embedding(user_query)
             matched_docs = list(self.retrieve_context(query_vector, top_k=7, language=target_language))
@@ -80,6 +87,8 @@ class RAGPipelineService:
             f"2. IF IT IS A REGULATORY/LEGAL/TAX QUESTION:\n"
             f"   - You MUST rely strictly on the provided Context below to give an accurate, "
             f"confident answer with citations.\n"
+            f"   - Make sure to use bullet points instead of paragraphs, "
+            f"numbered steps for sequential tasks, and bold headers for topics.\n"
             f"   - If the provided Context is empty, missing, or insufficient to give a "
             f"confident legal answer, start your response with 'UNCERTAIN_REGULATORY:' and "
             f"explain briefly that legal references are insufficient.\n"

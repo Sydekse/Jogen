@@ -23,14 +23,12 @@ class LegalDocumentEmbedding(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=255)
-    doc_reference = models.CharField(
-        max_length=255, help_text="e.g. Startup Proclamation No. 1396/2025"
-    )
+    doc_reference = models.CharField(max_length=255, help_text="e.g. Startup Proclamation No. 1396/2025")
     content_chunk = models.TextField()
     category = models.CharField(max_length=100, help_text="e.g. tax, startup_law, fx_law")
 
-    # OpenAI text-embedding-3-small generates 1536-dimensional vectors
-    embedding = VectorField(dimensions=768)
+    # Cohere embed-multilingual-v3.0 generates 1024-dimensional vectors
+    embedding = VectorField(dimensions=1024)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

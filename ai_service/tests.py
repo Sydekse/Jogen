@@ -15,9 +15,9 @@ User = get_user_model()
 
 @pytest.mark.django_db
 def test_vector_store_similarity_search():
-    # 768-dimensional dummy vectors matching your current config
-    dummy_vec_1 = [1.0] * 384 + [0.0] * 384
-    dummy_vec_2 = [0.0] * 384 + [1.0] * 384
+    # 1024-dimensional dummy vectors matching Cohere embed-multilingual-v3.0 config
+    dummy_vec_1 = [1.0] * 512 + [0.0] * 512
+    dummy_vec_2 = [0.0] * 512 + [1.0] * 512
 
     LegalDocumentEmbedding.objects.create(
         doc_reference="Electronic Invoicing Directive 1142/2026 (English)",
@@ -31,7 +31,7 @@ def test_vector_store_similarity_search():
         embedding=dummy_vec_2,
     )
 
-    query_vec = [0.9] * 384 + [0.1] * 384
+    query_vec = [0.9] * 512 + [0.1] * 512
 
     results = (
         LegalDocumentEmbedding.objects.filter(doc_reference__icontains="(English)")
@@ -51,14 +51,16 @@ class TestRAGChatAPI:
         self.client.force_authenticate(user=self.user)
         self.url = reverse("rag_chat")
 
+    @patch("ai_service.services.cohere.Client")
     @patch("ai_service.services.genai.Client")
-    def test_rag_chat_endpoint_structure(self, mock_genai_client):
-        # 1. Mock the Gemini SDK responses to avoid live API calls
+    def test_rag_chat_endpoint_structure(self, mock_genai_client, mock_cohere_client):
+        # 1. Mock the Gemini & Cohere SDK responses to avoid live API calls
         mock_client_instance = mock_genai_client.return_value
+        mock_cohere_instance = mock_cohere_client.return_value
 
-        mock_embed_result = MagicMock()
-        mock_embed_result.embeddings = [MagicMock(values=[0.5] * 768)]
-        mock_client_instance.models.embed_content.return_value = mock_embed_result
+        mock_embed_response = MagicMock()
+        mock_embed_response.embeddings = [[0.5] * 1024]
+        mock_cohere_instance.embed.return_value = mock_embed_response
 
         mock_interaction_result = MagicMock()
         mock_interaction_result.output_text = "Mocked answer about SaaS providers."
@@ -68,7 +70,7 @@ class TestRAGChatAPI:
         LegalDocumentEmbedding.objects.create(
             doc_reference="Electronic Invoicing Directive 1142/2026 (English)",
             content_chunk="Software as a Service (SaaS) means a sales registration system...",
-            embedding=[0.5] * 768,
+            embedding=[0.5] * 1024,
         )
 
         payload = {
