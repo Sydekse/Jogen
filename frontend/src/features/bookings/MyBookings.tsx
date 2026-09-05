@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Clock, Video, Phone, MessageCircle, Hash,
-  Timer, FileText, Star, X, Users, Trash2, CheckCircle
+  Timer, FileText, Star, X, Users, Trash2, Printer, CheckCircle
 } from 'lucide-react';
 import { useUser } from '@/src/context/UserContext';
 import { bookingService } from '@/src/services/bookingService';
@@ -452,7 +452,7 @@ export function MyBookings() {
           <div className="bg-card border border-border rounded-2xl max-w-lg w-full p-6 md:p-8 space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95">
             <button
               onClick={() => setSelectedInvoiceBooking(null)}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1"
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1 print:hidden"
             >
               <X className="w-5 h-5" />
             </button>
@@ -552,10 +552,16 @@ export function MyBookings() {
               </div>
             </div>
 
-            <div className="pt-2">
+            <div className="flex gap-3 pt-2 print:hidden">
+              <button
+                onClick={() => window.print()}
+                className="flex-1 py-3 bg-primary text-primary-foreground text-xs font-bold rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+              >
+                <Printer className="w-4 h-4" /> Print / Save PDF
+              </button>
               <button
                 onClick={() => setSelectedInvoiceBooking(null)}
-                className="w-full py-3 px-5 border border-border text-foreground text-xs font-semibold rounded-xl hover:bg-muted transition-colors"
+                className="py-3 px-5 border border-border text-foreground text-xs font-semibold rounded-xl hover:bg-muted transition-colors"
               >
                 Close
               </button>
