@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Clock, Video, Phone, MessageCircle, Hash,
-  Timer, FileText, Star, X, Users, Trash2, Printer, CheckCircle
+  Timer, FileText, Star, X, Users, Trash2, CheckCircle
 } from 'lucide-react';
 import { useUser } from '@/src/context/UserContext';
 import { bookingService } from '@/src/services/bookingService';
@@ -448,11 +448,11 @@ export function MyBookings() {
 
       {/* Invoice Modal */}
       {selectedInvoiceBooking && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 print:p-0 print:m-0 print:bg-transparent print:static">
-          <div id="invoice-printable" className="bg-card border border-border rounded-2xl max-w-lg w-full p-6 md:p-8 space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95 print:shadow-none print:border print:border-border print:p-6 print:max-w-none">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl max-w-lg w-full p-6 md:p-8 space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95">
             <button
               onClick={() => setSelectedInvoiceBooking(null)}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1 print:hidden"
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1"
             >
               <X className="w-5 h-5" />
             </button>
@@ -552,16 +552,10 @@ export function MyBookings() {
               </div>
             </div>
 
-            <div className="flex gap-3 pt-2 print:hidden">
-              <button
-                onClick={() => window.print()}
-                className="flex-1 py-3 bg-primary text-primary-foreground text-xs font-bold rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-              >
-                <Printer className="w-4 h-4" /> Print / Save PDF
-              </button>
+            <div className="pt-2">
               <button
                 onClick={() => setSelectedInvoiceBooking(null)}
-                className="py-3 px-5 border border-border text-foreground text-xs font-semibold rounded-xl hover:bg-muted transition-colors"
+                className="w-full py-3 px-5 border border-border text-foreground text-xs font-semibold rounded-xl hover:bg-muted transition-colors"
               >
                 Close
               </button>
