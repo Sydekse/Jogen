@@ -225,7 +225,7 @@ export function AuthScreen({ onLoginSuccess }: { onLoginSuccess: () => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background bg-drafting-grid flex flex-col">
       <header className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center">

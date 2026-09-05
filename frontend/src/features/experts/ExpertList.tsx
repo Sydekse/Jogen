@@ -56,31 +56,32 @@ export function ExpertList({ onViewExpert }: { onViewExpert?: (id: string) => vo
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search experts..."
+              placeholder="Search experts by name or title..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-muted border border-border rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
+              className="w-full pl-9 pr-4 py-2 bg-muted border border-border rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground transition-shadow shadow-2xs"
             />
           </div>
           <div className="relative w-full sm:w-32 md:w-36">
             <input
               type="number"
-              placeholder="Max Rate"
+              placeholder="Max Rate (ETB)"
               value={maxRate}
               onChange={(e) => setMaxRate(e.target.value)}
-              className="w-full px-4 py-2 bg-muted border border-border rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
+              className="w-full px-4 py-2 bg-muted border border-border rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground transition-shadow shadow-2xs"
             />
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-6 px-6 md:mx-0 md:px-0">
+      {/* Consultation File-Folder Tabs for Specialties */}
+      <div className="flex items-end gap-1.5 border-b border-border overflow-x-auto pb-0 pt-1 -mx-6 px-6 md:mx-0 md:px-0">
         <button
           onClick={() => setSelectedTag('')}
-          className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
+          className={`desk-press flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-semibold whitespace-nowrap -mb-[1px] transition-all ${
             selectedTag === ''
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-card border border-border text-foreground hover:bg-muted'
+              ? 'bg-card text-foreground border-t-2 border-t-primary border-x border-border border-b-transparent font-bold shadow-xs z-10'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/40 border-t border-x border-transparent'
           }`}
         >
           All Specialties
@@ -89,10 +90,10 @@ export function ExpertList({ onViewExpert }: { onViewExpert?: (id: string) => vo
           <button
             key={tag}
             onClick={() => setSelectedTag(selectedTag === tag ? '' : tag)}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
+            className={`desk-press flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-semibold whitespace-nowrap -mb-[1px] transition-all ${
               selectedTag === tag
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-card border border-border text-foreground hover:bg-muted'
+                ? 'bg-card text-foreground border-t-2 border-t-primary border-x border-border border-b-transparent font-bold shadow-xs z-10'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/40 border-t border-x border-transparent'
             }`}
           >
             #{tag.replace('_', ' ')}

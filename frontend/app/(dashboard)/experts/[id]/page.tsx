@@ -10,7 +10,7 @@ export default async function ExpertProfilePage({
   const resolvedParams = await params;
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background bg-drafting-grid">
       {/* 3. Pass the unwrapped ID into your component */}
       <ExpertProfile expertId={resolvedParams.id} />
     </main>

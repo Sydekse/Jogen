@@ -46,7 +46,7 @@ export function LandingPage({ onGetStarted, onDemo, darkMode, setDarkMode, lang,
   ];
 
   return (
-    <div className="min-h-screen bg-background overflow-auto">
+    <div className="min-h-screen bg-background bg-drafting-grid overflow-auto">
       {/* ── Sticky Nav ── */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">

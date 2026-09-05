@@ -11,6 +11,8 @@ import { expertService } from '@/src/services/expertService';
 import { reviewService } from '@/src/services/reviewService';
 import { ExpertDetail } from '@/src/types/expert';
 import { BookingCheckoutModal } from '@/src/components/booking/BookingCheckoutModal';
+import { SecurityWatermark } from '@/src/components/ui/SecurityWatermark';
+import { DogEarCorner } from '@/src/components/ui/DogEarCorner';
 
 function cn(...classes: (string | false | undefined | null)[]) {
   return classes.filter(Boolean).join(" ");
@@ -250,9 +252,18 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
           {/* LEFT COLUMN: Profile Info */}
           <div className="lg:col-span-3 space-y-5">
 
-            {/* Header Card */}
-            <div className="bg-card border border-border rounded-2xl p-6">
-              <div className="flex items-start gap-5">
+            {/* Header Card with Brass Paperclip & Security Watermark */}
+            <div className="bg-card border border-border rounded-2xl p-6 relative overflow-hidden">
+              {/* Security Watermark Emblem */}
+              <SecurityWatermark className="w-48 h-48 right-0 -bottom-6 text-foreground/[0.03] dark:text-foreground/[0.045]" />
+
+              {/* Brass Paperclip SVG Motif */}
+              <div 
+                className="absolute -top-3 right-8 w-6 h-14 border-[2.5px] border-amber-600/60 dark:border-amber-400/60 rounded-full rotate-12 pointer-events-none opacity-85 shadow-xs z-10" 
+                title="Paperclip"
+              />
+
+              <div className="flex items-start gap-5 relative z-10">
                 <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold text-xl shrink-0 border border-primary/20 overflow-hidden">
                   {expert.profile_picture && !imgError ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -282,8 +293,10 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
               </div>
             </div>
 
-            {/* About Card */}
-            <div className="bg-card border border-border rounded-2xl p-5">
+            {/* About Card with Dog-Ear Fold */}
+            <div className="bg-card border border-border rounded-2xl p-5 relative overflow-hidden">
+              <DogEarCorner size="md" />
+
               <h3 className="font-bold text-foreground mb-3">About</h3>
               <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{expert.bio}</p>
               <div className="flex flex-wrap gap-2 mt-4">
@@ -295,8 +308,10 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
               </div>
             </div>
 
-            {/* Reviews Card */}
-            <div className="bg-card border border-border rounded-2xl p-5">
+            {/* Reviews Card with Dog-Ear Fold */}
+            <div className="bg-card border border-border rounded-2xl p-5 relative overflow-hidden">
+              <DogEarCorner size="md" />
+
               <h3 className="font-bold text-foreground mb-4">Client Reviews</h3>
               {reviews.length === 0 ? (
                 <div className="text-center py-8">
@@ -325,7 +340,9 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
 
           {/* RIGHT COLUMN: Booking Widget */}
           <div className="lg:col-span-2">
-            <div className="bg-card border border-border rounded-2xl p-5 sticky top-20 shadow-sm">
+            <div className="bg-card border border-border rounded-2xl p-5 sticky top-20 shadow-sm relative overflow-hidden">
+              <DogEarCorner size="md" />
+
               <h3 className="font-bold text-foreground mb-4">Book a Consultation</h3>
 
               {/* Date & Week Selection */}
@@ -374,8 +391,8 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
                   </div>
                 </div>
 
-                {/* Horizontal 7-Day Strip */}
-                <div className="grid grid-cols-7 gap-1 bg-muted/40 p-1.5 rounded-xl border border-border">
+                {/* Horizontal 7-Day Ruled Planner Grid */}
+                <div className="grid grid-cols-7 divide-x divide-border/60 bg-muted/30 rounded-xl border border-border overflow-hidden shadow-2xs">
                   {currentWeekDates.map((dayItem) => {
                     const isSelected = selectedDateKey === dayItem.dateKey;
                     return (
@@ -387,29 +404,29 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
                           setSelectedSlot(null);
                         }}
                         className={cn(
-                          "flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs transition-all relative",
+                          "desk-press flex flex-col items-center justify-center py-2.5 px-0.5 text-xs transition-all relative",
                           isSelected
-                            ? "bg-primary text-primary-foreground font-bold shadow-sm"
+                            ? "bg-primary text-primary-foreground font-bold shadow-xs"
                             : dayItem.isPast
-                            ? "opacity-50 hover:opacity-85 text-muted-foreground hover:bg-background/60"
+                            ? "opacity-45 hover:opacity-80 text-muted-foreground hover:bg-background/60"
                             : dayItem.hasSlots
-                            ? "hover:bg-background text-foreground hover:shadow-xs font-medium"
+                            ? "hover:bg-background text-foreground font-medium"
                             : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
                         )}
                       >
                         <span className="text-[10px] uppercase tracking-tighter opacity-80">
                           {dayItem.dayName}
                         </span>
-                        <span className={cn("text-xs leading-none my-0.5", isSelected ? "font-extrabold" : "font-semibold")}>
+                        <span className={cn("text-xs leading-none my-1", isSelected ? "font-extrabold" : "font-semibold")}>
                           {dayItem.dayNumber}
                         </span>
                         {dayItem.hasSlots ? (
                           <span className={cn(
-                            "w-1.5 h-1.5 rounded-full mt-0.5",
+                            "w-1.5 h-1.5 rounded-full",
                             isSelected ? "bg-primary-foreground" : "bg-primary"
                           )} />
                         ) : (
-                          <span className="text-[9px] text-muted-foreground/60 leading-none mt-0.5">
+                          <span className="text-[9px] text-muted-foreground/60 leading-none">
                             -
                           </span>
                         )}
@@ -451,10 +468,10 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
                         type="button"
                         onClick={() => setSelectedSlot(slot)}
                         className={cn(
-                          "py-2 px-2.5 rounded-xl text-xs font-medium transition-all border text-center",
+                          "desk-press py-2 px-2.5 rounded-xl text-xs font-medium transition-all border text-center relative",
                           selectedSlot === slot
                             ? "bg-primary text-primary-foreground border-primary font-bold shadow-sm"
-                            : "bg-muted/40 hover:bg-muted border-border/60 text-foreground hover:border-border"
+                            : "bg-muted/40 hover:bg-muted border-border/60 text-foreground hover:border-border hover:shadow-2xs"
                         )}
                       >
                         {slot}
@@ -510,7 +527,7 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
               <button
                 disabled={!selectedSlot}
                 onClick={handleBook}
-                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-40"
+                className="desk-press w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-40 shadow-xs"
               >
                 {selectedSlot ? "Authorize Payment & Enter Session" : "Select a Time Slot to Continue"}
               </button>

@@ -27,7 +27,16 @@ function getColor(id: string) {
 export const ExpertCard: React.FC<ExpertCardProps> = ({ expert, onTagClick, onView }) => {
   const [imgError, setImgError] = useState(false);
   return (
-    <div className="bg-card border border-border rounded-2xl p-5 hover:border-primary/30 hover:shadow-md transition-all flex flex-col justify-between">
+    <div className="bg-card border border-border rounded-2xl p-5 hover:border-primary/40 hover:shadow-md card-hover-wobble transition-all flex flex-col justify-between relative overflow-hidden">
+      {/* Subtle Dog-Ear Document Fold */}
+      <div 
+        className="absolute top-0 right-0 w-3.5 h-3.5 pointer-events-none z-10"
+        aria-hidden="true"
+      >
+        <div className="w-0 h-0 border-t-[12px] border-t-background border-l-[12px] border-l-transparent absolute top-0 right-0" />
+        <div className="w-0 h-0 border-b-[12px] border-b-border/70 border-r-[12px] border-r-transparent absolute top-0 right-0 shadow-2xs" />
+      </div>
+
       <div>
         <div className="flex items-start gap-4 mb-4">
           <div 
@@ -74,9 +83,16 @@ export const ExpertCard: React.FC<ExpertCardProps> = ({ expert, onTagClick, onVi
       </div>
 
       <div className="flex items-center justify-between mt-4 pt-3.5 border-t border-border">
-          <span className="text-xs font-semibold text-primary">{expert.rate_per_session} ETB <span className="text-muted-foreground font-normal">/ hr</span></span>
-          <button onClick={onView} className="text-xs font-bold text-primary hover:underline underline-offset-2">Book →</button>
-        </div>
+        <span className="text-xs font-semibold text-primary">
+          {expert.rate_per_session} ETB <span className="text-muted-foreground font-normal">/ hr</span>
+        </span>
+        <button 
+          onClick={onView} 
+          className="desk-press text-xs font-bold text-primary hover:underline underline-offset-2 flex items-center gap-1"
+        >
+          Book ✎
+        </button>
       </div>
+    </div>
   );
 };

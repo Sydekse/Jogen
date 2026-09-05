@@ -168,10 +168,19 @@ export function ExpertDashboard() {
         </p>
       </div>
 
-      {/* Stat Cards */}
+      {/* Stat Cards with Dog-Ear Document Fold */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         {stats.map((stat, i) => (
-          <div key={i} className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+          <div key={i} className="bg-card border border-border rounded-2xl p-5 shadow-sm relative overflow-hidden">
+            {/* Subtle Dog-Ear Document Fold */}
+            <div 
+              className="absolute top-0 right-0 w-3 h-3 pointer-events-none z-10"
+              aria-hidden="true"
+            >
+              <div className="w-0 h-0 border-t-[10px] border-t-background border-l-[10px] border-l-transparent absolute top-0 right-0" />
+              <div className="w-0 h-0 border-b-[10px] border-b-border/70 border-r-[10px] border-r-transparent absolute top-0 right-0 shadow-2xs" />
+            </div>
+
             <div className="flex items-start justify-between mb-4">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <stat.icon className="w-5 h-5 text-primary" />
@@ -192,7 +201,16 @@ export function ExpertDashboard() {
 
       {/* Row 1: Recent Requests & Profile Configuration */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6">
+        <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6 relative overflow-hidden">
+          {/* Subtle Dog-Ear Document Fold */}
+          <div 
+            className="absolute top-0 right-0 w-3.5 h-3.5 pointer-events-none z-10"
+            aria-hidden="true"
+          >
+            <div className="w-0 h-0 border-t-[12px] border-t-background border-l-[12px] border-l-transparent absolute top-0 right-0" />
+            <div className="w-0 h-0 border-b-[12px] border-b-border/70 border-r-[12px] border-r-transparent absolute top-0 right-0 shadow-2xs" />
+          </div>
+
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-bold text-lg text-foreground">Recent Requests</h3>
             <button className="text-sm font-semibold text-primary hover:underline">View All</button>

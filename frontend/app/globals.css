@@ -216,3 +216,61 @@
 .PhoneInputCountrySelectArrow {
   @apply ml-2 text-muted-foreground opacity-50;
 }
+
+/* Background Texture Utility Classes for Consultation Authentic Feel */
+.bg-drafting-grid {
+  background-image: radial-gradient(circle, var(--border) 1.25px, transparent 1.25px);
+  background-size: 24px 24px;
+}
+
+.bg-laid-paper {
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 31px,
+    var(--border) 31px,
+    var(--border) 32px
+  );
+  background-size: 100% 32px;
+}
+
+.bg-desk-vignette {
+  background-image: radial-gradient(ellipse at 50% 0%, var(--accent) 0%, transparent 75%);
+}
+
+/* Card hover lift (pure upward lift, no tilt) */
+.card-hover-wobble {
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease, border-color 0.2s ease;
+}
+.card-hover-wobble:hover {
+  transform: translateY(-4px);
+}
+.card-hover-wobble:active {
+  transform: translateY(-1px);
+}
+
+/* Desk-press micro interaction for tactile buttons */
+.desk-press {
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+}
+.desk-press:active {
+  transform: translateY(1.5px) scale(0.98);
+}
+
+/* Docket Modal Unfold Animation */
+@keyframes docketUnfold {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-docket-unfold {
+  animation: docketUnfold 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+
