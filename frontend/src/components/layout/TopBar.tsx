@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Globe, Bell, Sun, Moon } from "lucide-react";
+import { Bell, Sun, Moon } from "lucide-react";
 import { useUser } from "@/src/context/UserContext";
 import { notificationService, Notification } from "@/src/services/notificationService";
 
 export function TopBar() {
-  const { darkMode, setDarkMode, lang, setLang } = useUser();
+  const { darkMode, setDarkMode } = useUser();
   
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -61,11 +61,7 @@ export function TopBar() {
   };
   
   return (
-    <header className="h-14 border-b border-border bg-card/60 backdrop-blur-sm flex items-center justify-end px-5 gap-2.5 shrink-0">
-      <button onClick={() => setLang(lang === "en" ? "am" : "en")} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border border-border hover:bg-accent transition-colors text-foreground">
-        <Globe className="w-3.5 h-3.5" />{lang === "en" ? "አማርኛ" : "English"}
-      </button>
-
+    <header className="relative z-50 h-14 border-b border-border bg-card/60 backdrop-blur-sm flex items-center justify-end px-5 gap-2.5 shrink-0">
       <div className="relative" ref={dropdownRef}>
         <button onClick={() => setIsOpen(!isOpen)} className="relative p-2 rounded-xl hover:bg-accent transition-colors text-muted-foreground">
           <Bell className="w-4 h-4" />
@@ -75,7 +71,7 @@ export function TopBar() {
         </button>
 
         {isOpen && (
-          <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto bg-card border border-border rounded-xl shadow-lg z-50">
+          <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto bg-card border border-border rounded-xl shadow-2xl z-[100]">
             <div className="p-3 border-b border-border flex justify-between items-center">
               <h3 className="font-bold text-sm text-foreground">Notifications</h3>
               {unreadCount > 0 && (

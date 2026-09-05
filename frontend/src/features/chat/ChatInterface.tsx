@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Globe } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { JogenLogo } from "@/src/components/ui/jogenLogo";
 import { useUser } from "@/src/context/UserContext";
@@ -31,7 +31,7 @@ export default function ChatInterface({
 }) {
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { lang } = useUser();
+  const { lang, setLang } = useUser();
   const endRef = useRef<HTMLDivElement>(null);
 
   const activeSession = sessions.find((s) => s.id === activeSessionId) || sessions[0];
@@ -128,9 +128,22 @@ export default function ChatInterface({
           <p className="text-xs font-bold text-foreground">Jogen AI</p>
           <p className="text-xs text-muted-foreground">Ethiopian Law RAG</p>
         </div>
-        <div className="ml-auto flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span className="text-xs text-muted-foreground">Online</span>
+        <div className="ml-auto flex items-center gap-2">
+          {/* Amharic / English Chatbot Language Switcher */}
+          <button
+            type="button"
+            onClick={() => setLang(lang === "en" ? "am" : "en")}
+            className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-xl border border-border bg-card hover:bg-accent transition-colors text-foreground shadow-xs"
+            title="Toggle AI response language"
+          >
+            <Globe className="w-3.5 h-3.5 text-primary" />
+            <span>{lang === "en" ? "አማርኛ" : "English"}</span>
+          </button>
+
+          <div className="flex items-center gap-1.5 pl-1">
+            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="text-xs text-muted-foreground hidden sm:inline">Online</span>
+          </div>
         </div>
       </div>
 
@@ -188,7 +201,7 @@ export default function ChatInterface({
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             disabled={isLoading}
-            placeholder={isLoading ? "Please wait..." : "Ask a regulatory or tax question…"}
+            placeholder={isLoading ? (lang === "en" ? "Please wait..." : "እባክዎ ይጠብቁ...") : (lang === "en" ? "Ask a regulatory or tax question…" : "የህግ ወይም የታክስ ጥያቄ ይጠይቁ…")}
             className="flex-1 bg-muted rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
           />
           <button 
