@@ -448,8 +448,8 @@ export function MyBookings() {
 
       {/* Invoice Modal */}
       {selectedInvoiceBooking && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 print:p-0 print:m-0 print:bg-transparent print:static">
-          <div id="invoice-printable" className="bg-card border border-border rounded-2xl max-w-lg w-full p-6 md:p-8 space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95 print:shadow-none print:border print:border-border print:p-6 print:max-w-none">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl max-w-lg w-full p-6 md:p-8 space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95">
             <button
               onClick={() => setSelectedInvoiceBooking(null)}
               className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1 print:hidden"
