@@ -448,11 +448,11 @@ export function MyBookings() {
 
       {/* Invoice Modal */}
       {selectedInvoiceBooking && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-2xl max-w-lg w-full p-6 md:p-8 space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 print:p-0 print:m-0 print:bg-transparent print:static">
+          <div id="invoice-printable" className="bg-card border border-border rounded-2xl max-w-lg w-full p-6 md:p-8 space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95 print:shadow-none print:border print:border-border print:p-6 print:max-w-none">
             <button
               onClick={() => setSelectedInvoiceBooking(null)}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1"
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1 print:hidden"
             >
               <X className="w-5 h-5" />
             </button>
@@ -552,7 +552,7 @@ export function MyBookings() {
               </div>
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-3 pt-2 print:hidden">
               <button
                 onClick={() => window.print()}
                 className="flex-1 py-3 bg-primary text-primary-foreground text-xs font-bold rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"

@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   Calendar,
-  Clock,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -13,9 +12,7 @@ import {
   Moon,
   Check,
   Sparkles,
-  RotateCcw,
-  BookmarkCheck,
-  CalendarCheck
+  BookmarkCheck
 } from 'lucide-react';
 import { BookingDetail } from '@/src/types/booking';
 
@@ -162,12 +159,12 @@ export function ExpertAvailabilityManager({
   }, [availability, activeDateItem]);
 
   // Helper to get effective slots for any day item
-  const getEffectiveSlots = (dayKey: DayKey, dateKey: string): string[] => {
+  const getEffectiveSlots = useCallback((dayKey: DayKey, dateKey: string): string[] => {
     if (availability[dateKey] !== undefined) {
       return availability[dateKey] || [];
     }
     return availability[dayKey] || [];
-  };
+  }, [availability]);
 
   // Compute active slots based on current scope
   const activeSlots = useMemo(() => {
@@ -297,7 +294,7 @@ export function ExpertAvailabilityManager({
       totalSlots += getEffectiveSlots(w.dayKey, w.dateKey).length;
     });
     return (totalSlots * 0.5).toFixed(1);
-  }, [availability, weekDates]);
+  }, [getEffectiveSlots, weekDates]);
 
   // Week range label (e.g. "Sep 7 – Sep 13, 2026")
   const weekRangeLabel = useMemo(() => {

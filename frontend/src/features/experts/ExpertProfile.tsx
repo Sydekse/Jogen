@@ -64,7 +64,6 @@ function generateSlots(timeRanges: string[]) {
 }
 
 const WEEK_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
-type DayKey = typeof WEEK_DAYS[number];
 
 export function ExpertProfile({ expertId }: { expertId: string }) {
   const router = useRouter();
@@ -174,7 +173,7 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
         hasSlots: validSlots.length > 0,
       };
     });
-  }, [expert, weekOffset]);
+  }, [expert, weekOffset, todayDateKey]);
 
   // Clean human date range label without week numbers
   const weekRangeLabel = useMemo(() => {
@@ -274,8 +273,10 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
                   <p className="text-muted-foreground mt-0.5 text-sm">{expert.title}</p>
                   <div className="flex items-center gap-3 mt-2">
                     <StarRating rating={reviews.length > 0 ? (reviews.reduce((a, b) => a + b.rating, 0) / reviews.length) : 0} size="md" />
-                    <span className="text-sm text-muted-foreground">({reviews.length} reviews)</span>
-                    <span className="text-sm text-muted-foreground">· 8 yrs</span>
+                    <span className="text-sm text-muted-foreground">({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})</span>
+                    {(expert as any).years_of_experience ? (
+                      <span className="text-sm text-muted-foreground">· {(expert as any).years_of_experience} yrs</span>
+                    ) : null}
                   </div>
                 </div>
               </div>
