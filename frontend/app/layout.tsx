@@ -29,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${plusJakarta.className} antialiased bg-background text-foreground`}>
+      <body className={`${plusJakarta.className} antialiased bg-background bg-drafting-grid text-foreground`}>
         <GoogleAuthProvider>
           <UserProvider>
             <ModalProvider>

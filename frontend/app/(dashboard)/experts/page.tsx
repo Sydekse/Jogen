@@ -7,7 +7,7 @@ export default function ExpertsPage() {
   const router = useRouter();
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background bg-drafting-grid">
       <ExpertList onViewExpert={(id) => router.push(`/experts/${id}`)} />
     </main>
   );

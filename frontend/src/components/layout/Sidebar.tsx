@@ -54,29 +54,32 @@ export function Sidebar({
     )}>
       <div className="px-2.5 py-3 border-b border-border flex items-center justify-between gap-2 min-w-0">
         <div className={cn("flex items-center gap-2.5 min-w-0 overflow-hidden transition-all duration-200", collapsed ? "w-0 opacity-0 pointer-events-none" : "flex-1 opacity-100")}>
-          <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-xs">
             <JogenLogo className="w-4 h-4 text-primary-foreground" />
           </div>
-          <span className="font-bold text-base tracking-tight text-foreground whitespace-nowrap">Jogen</span>
+          <div>
+            <span className="font-bold text-base tracking-tight text-foreground whitespace-nowrap block leading-tight">Jogen</span>
+            <span className="text-[10px] text-muted-foreground block leading-tight">Regulatory Assistant</span>
+          </div>
         </div>
         {collapsed && (
-          <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shrink-0 mx-auto">
+          <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shrink-0 mx-auto shadow-xs">
             <JogenLogo className="w-4 h-4 text-primary-foreground" />
           </div>
         )}
         <button onClick={onToggle} className={cn(
-          "p-1 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shrink-0",
+          "p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0",
           collapsed && "hidden"
         )}>
           <ChevronLeft className="w-4 h-4" />
         </button>
       </div>
       {collapsed && (
-        <button onClick={onToggle} className="flex items-center justify-center py-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+        <button onClick={onToggle} className="flex items-center justify-center py-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
           <ChevronRight className="w-4 h-4" />
         </button>
       )}
-      <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto flex flex-col">
+      <nav className="flex-1 py-3 px-2 space-y-1 overflow-y-auto flex flex-col">
         {NAV_ITEMS.map(({ id, label, icon: Icon, href }) => {
           // Check if this item is active
           const isActive = activeId === id;
@@ -88,9 +91,11 @@ export function Sidebar({
           return (
             <div key={id}>
               <Link href={href} title={collapsed ? label : undefined}
-                className={cn("w-full flex items-center gap-3 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                className={cn("desk-press w-full flex items-center gap-3 px-2.5 py-2.5 rounded-xl text-sm font-medium transition-all relative",
                   collapsed ? "justify-center" : "",
-                  isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-accent")}>
+                  isActive 
+                    ? "bg-primary/10 text-primary font-bold border-l-[3px] border-primary shadow-2xs" 
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50")}>
                 <Icon className="w-4 h-4 shrink-0" />
                 {!collapsed && (
                   <div className="flex items-center flex-1 min-w-0 justify-between">
@@ -112,22 +117,22 @@ export function Sidebar({
               </Link>
               {/* AI History Dropdown logic */}
               {id === "ai" && isActive && !collapsed && isHistoryExpanded && sessions && (
-                <div className="pl-9 pr-2 py-2 space-y-1">
-                  <button onClick={handleNewChat} className="w-full flex items-center gap-2 py-1.5 px-2 rounded-lg text-xs font-semibold text-primary hover:bg-primary/10 transition-colors">
-                    <Plus className="w-3 h-3" /> New Chat
+                <div className="pl-6 pr-2 py-1.5 space-y-1 border-l border-border/60 ml-4 my-1">
+                  <button onClick={handleNewChat} className="desk-press w-full flex items-center gap-2 py-1 px-2 rounded-lg text-xs font-semibold text-primary hover:bg-primary/10 transition-colors">
+                    <Plus className="w-3 h-3" /> New Conversation
                   </button>
                   {sessions.map((session) => (
                     <div key={session.id} className={cn(
                       "group relative w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition-colors",
-                      session.id === activeSessionId ? "bg-accent font-semibold text-foreground" : "text-muted-foreground hover:bg-accent"
+                      session.id === activeSessionId ? "bg-muted font-semibold text-foreground border border-border/60" : "text-muted-foreground hover:bg-muted/50"
                     )}>
                       <button
                         onClick={() => setActiveSessionId(session.id)}
-                        className="flex-1 text-left truncate min-w-0"
+                        className="flex-1 text-left truncate min-w-0 font-mono text-[11px]"
                       >
                         {session.title}
                       </button>
-                      <div className="hidden group-hover:flex items-center gap-1 shrink-0 bg-accent pl-2">
+                      <div className="hidden group-hover:flex items-center gap-1 shrink-0 bg-muted pl-2">
                         <button 
                           onClick={async (e) => {
                             e.preventDefault();
@@ -137,7 +142,7 @@ export function Sidebar({
                                handleRenameSession(session.id, newTitle.trim());
                             }
                           }}
-                          className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+                          className="p-1 hover:bg-accent rounded text-muted-foreground hover:text-foreground"
                           title="Rename"
                         >
                           <Edit2 className="w-3 h-3" />
@@ -166,9 +171,11 @@ export function Sidebar({
       </nav>
       <div className="p-2 border-t border-border">
         <Link href="/profile" title={collapsed ? "Profile" : undefined}
-          className={cn("w-full flex items-center gap-3 px-2.5 py-2.5 rounded-xl transition-colors group",
+          className={cn("desk-press w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl transition-all border group relative overflow-hidden",
             collapsed ? "justify-center" : "",
-            activeId === "profile" ? "bg-primary text-primary-foreground" : "hover:bg-accent")}>
+            activeId === "profile" 
+              ? "border-primary bg-primary/10 text-primary font-bold shadow-xs" 
+              : "border-border/80 hover:border-border hover:bg-muted/40 text-foreground")}>
 
           {/* Conditional rendering for Profile Picture vs Initials */}
           {profilePictureUrl ? (
@@ -176,26 +183,25 @@ export function Sidebar({
             <img
               src={profilePictureUrl}
               alt={fullName || "Profile"}
-              className="w-8 h-8 rounded-full object-cover shrink-0"
+              className="w-8 h-8 rounded-lg object-cover shrink-0 border border-border"
             />
           ) : (
-            <div className={cn("w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0",
-              activeId === "profile" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/15 text-primary")}>
+            <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border border-primary/20",
+              activeId === "profile" ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary")}>
               {initials}
             </div>
           )}
 
           {!collapsed && (
             <div className="flex-1 min-w-0 text-left">
-              <p className={cn("text-sm font-semibold truncate", activeId === "profile" ? "text-primary-foreground" : "text-foreground")}>{fullName}</p>
-              <p className={cn("text-xs", activeId === "profile" ? "text-primary-foreground/70" : "text-muted-foreground")}>
-                {isExpert ? "Seeker · Expert" : "Business Seeker"}
-              </p>
+              <p className="text-xs font-bold truncate text-foreground">{fullName || "User Profile"}</p>
+              <span className="text-[10px] text-muted-foreground block truncate">
+                {isExpert ? "Verified Expert" : "Business Seeker"}
+              </span>
             </div>
           )}
           {!collapsed && (
-            <User className={cn("w-3.5 h-3.5 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity",
-              activeId === "profile" ? "text-primary-foreground" : "text-muted-foreground")} />
+            <User className="w-3.5 h-3.5 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity text-muted-foreground" />
           )}
         </Link>
       </div>

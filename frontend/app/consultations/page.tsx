@@ -79,7 +79,7 @@ export default function ConsultationsDashboardPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background py-10 px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-background bg-drafting-grid py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>

@@ -31,14 +31,14 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-[100dvh] bg-background overflow-hidden font-sans relative">
+    <div className="flex h-[100dvh] bg-background bg-drafting-grid overflow-hidden font-sans relative">
       <Sidebar 
         collapsed={collapsed}
         onToggle={() => setCollapsed(!collapsed)}
       />
       <div className="flex-1 flex flex-col h-full overflow-hidden pb-14 md:pb-0">
         <TopBar />
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto bg-drafting-grid">
           {children}
         </main>
       </div>

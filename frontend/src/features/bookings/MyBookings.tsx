@@ -10,6 +10,8 @@ import { useUser } from '@/src/context/UserContext';
 import { bookingService } from '@/src/services/bookingService';
 import { BookingDetail } from '@/src/types/booking';
 import { toast } from 'sonner';
+import { DogEarCorner } from '@/src/components/ui/DogEarCorner';
+import { SecurityWatermark } from '@/src/components/ui/SecurityWatermark';
 
 // --- Utility ---
 function cn(...classes: (string | false | undefined | null)[]) {
@@ -249,7 +251,7 @@ export function MyBookings() {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-background">
+    <div className="h-full overflow-y-auto bg-background bg-drafting-grid">
       <div className="max-w-4xl mx-auto px-3.5 sm:px-6 py-4 sm:py-8">
 
         {/* Header */}
@@ -285,24 +287,33 @@ export function MyBookings() {
           </div>
         ))}
 
-        {/* Filter Tabs */}
-        <div className="flex gap-1 mb-6 bg-muted/40 rounded-xl p-1 border border-border w-full sm:w-fit overflow-x-auto">
-          {tabs.map(t => (
-            <button
-              key={t.id}
-              onClick={() => setFilter(t.id)}
-              className={cn("flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap",
-                filter === t.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
-            >
-              {t.label}
-              {t.count !== undefined && (
-                <span className={cn("text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full font-bold",
-                  filter === t.id ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
-                  {t.count}
-                </span>
-              )}
-            </button>
-          ))}
+        {/* Consultation File-Folder Tabs */}
+        <div className="flex items-end gap-1.5 mb-6 border-b border-border w-full overflow-x-auto pt-1">
+          {tabs.map(t => {
+            const isActive = filter === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setFilter(t.id)}
+                className={cn(
+                  "desk-press flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap -mb-[1px] relative",
+                  isActive
+                    ? "bg-card text-foreground border-t-2 border-x border-b-transparent border-t-primary border-x-border font-bold shadow-xs z-10"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40 border-t border-x border-transparent"
+                )}
+              >
+                {t.label}
+                {t.count !== undefined && (
+                  <span className={cn(
+                    "text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full font-bold",
+                    isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                  )}>
+                    {t.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Booking Cards */}
@@ -320,9 +331,18 @@ export function MyBookings() {
 
               return (
                 <div key={b.id} className={cn(
-                  "bg-card border rounded-2xl p-5 transition-all hover:shadow-sm",
+                  "bg-card border rounded-2xl p-5 transition-all hover:shadow-sm relative overflow-hidden",
                   joinable ? "border-primary/30 shadow-md" : "border-border hover:border-primary/20"
                 )}>
+                  {/* Subtle Dog-Ear Document Fold */}
+                  <div 
+                    className="absolute top-0 right-0 w-3.5 h-3.5 pointer-events-none"
+                    aria-hidden="true"
+                  >
+                    <div className="w-0 h-0 border-t-[12px] border-t-background border-l-[12px] border-l-transparent absolute top-0 right-0" />
+                    <div className="w-0 h-0 border-b-[12px] border-b-border/70 border-r-[12px] border-r-transparent absolute top-0 right-0 shadow-2xs" />
+                  </div>
+
                   <div className="flex flex-col sm:flex-row items-start gap-5">
 
                     {/* Avatar */}
@@ -332,7 +352,7 @@ export function MyBookings() {
 
                     {/* Main Info */}
                     <div className="flex-1 min-w-0 w-full">
-                      <div className="flex items-start justify-between gap-2 flex-wrap mb-1">
+                      <div className="flex items-start justify-between gap-2 flex-wrap mb-1 pr-3">
                         <div>
                           <p className="font-bold text-foreground text-base">{b.expert.name}</p>
                           <p className="text-sm text-muted-foreground">{b.expert.title}</p>
@@ -355,7 +375,7 @@ export function MyBookings() {
                         <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />{b.date} · {b.scheduledTime}</span>
                         <span className="flex items-center gap-1.5"><Timer className="w-3.5 h-3.5" />{b.duration} min</span>
                         <span className="flex items-center gap-1.5"><ModeIcon className="w-3.5 h-3.5" />{b.mode.charAt(0).toUpperCase() + b.mode.slice(1)}</span>
-                        <span className="flex items-center gap-1.5"><Hash className="w-3.5 h-3.5" />{b.id.slice(0, 8)}</span>
+                        <span className="flex items-center gap-1.5 font-mono text-[11px]"><Hash className="w-3 h-3" />DKT-{b.id.slice(0, 8).toUpperCase()}</span>
                       </div>
 
                       {/* Countdown Badge */}
@@ -448,17 +468,27 @@ export function MyBookings() {
 
       {/* Invoice Modal */}
       {selectedInvoiceBooking && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-2xl max-w-lg w-full p-6 md:p-8 space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl max-w-lg w-full p-6 md:p-8 space-y-6 shadow-2xl relative modal-docket-unfold overflow-hidden">
+            {/* Subtle Dog-Ear Document Fold */}
+            <DogEarCorner size="lg" />
+
+            {/* Security Watermark Emblem */}
+            <SecurityWatermark className="w-56 h-56 right-0 bottom-0 text-foreground/[0.04] dark:text-foreground/[0.06]" />
+
             <button
               onClick={() => setSelectedInvoiceBooking(null)}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1 print:hidden"
+              className="desk-press absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted print:hidden z-20"
+              title="Close"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="border-b border-border pb-4 flex justify-between items-start">
+            <div className="border-b border-border pb-4 flex justify-between items-start relative z-10">
               <div>
+                <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-0.5">
+                  {selectedInvoiceBooking.isClient ? "DKT-INV // OFFICIAL CLIENT INVOICE" : "DKT-PAY // EXPERT PAYOUT RECORD"}
+                </div>
                 <h2 className="text-xl font-bold text-foreground">
                   {selectedInvoiceBooking.isClient ? "Consultation Service Receipt" : "Consultation Payout Receipt"}
                 </h2>
@@ -552,16 +582,16 @@ export function MyBookings() {
               </div>
             </div>
 
-            <div className="flex gap-3 pt-2 print:hidden">
+            <div className="flex gap-3 pt-2 print:hidden relative z-10">
               <button
                 onClick={() => window.print()}
-                className="flex-1 py-3 bg-primary text-primary-foreground text-xs font-bold rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                className="desk-press flex-1 py-3 bg-primary text-primary-foreground text-xs font-bold rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-sm"
               >
                 <Printer className="w-4 h-4" /> Print / Save PDF
               </button>
               <button
                 onClick={() => setSelectedInvoiceBooking(null)}
-                className="py-3 px-5 border border-border text-foreground text-xs font-semibold rounded-xl hover:bg-muted transition-colors"
+                className="desk-press py-3 px-5 border border-border text-foreground text-xs font-semibold rounded-xl hover:bg-muted transition-colors"
               >
                 Close
               </button>

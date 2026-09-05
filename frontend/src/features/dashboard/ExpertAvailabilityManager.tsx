@@ -15,6 +15,7 @@ import {
   BookmarkCheck
 } from 'lucide-react';
 import { BookingDetail } from '@/src/types/booking';
+import { DogEarCorner } from '@/src/components/ui/DogEarCorner';
 
 export interface ExpertAvailabilityManagerProps {
   availability: Record<string, string[]>;
@@ -310,9 +311,12 @@ export function ExpertAvailabilityManager({
   }, [weekDates]);
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-5 md:p-6 shadow-sm space-y-6">
+    <div className="bg-card border border-border rounded-2xl p-5 md:p-6 shadow-sm space-y-6 relative overflow-hidden">
+      {/* Subtle Dog-Ear Document Fold */}
+      <DogEarCorner size="md" />
+
       {/* Header & Week Navigator */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border relative z-10">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0 border border-primary/20">
             <Calendar className="w-5 h-5" />
@@ -330,12 +334,13 @@ export function ExpertAvailabilityManager({
           </div>
         </div>
 
-        {/* Week Navigator */}
-        <div className="flex items-center gap-2 self-start sm:self-auto bg-muted/60 p-1.5 rounded-xl border border-border">
+        {/* Multi-Week Offset Navigator */}
+        <div className="flex items-center gap-1.5 self-start sm:self-auto bg-muted/50 p-1 rounded-xl border border-border">
           <button
             type="button"
-            onClick={() => setWeekOffset(prev => prev - 1)}
-            className="p-1.5 rounded-lg hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
+            disabled={weekOffset === 0}
+            onClick={() => setWeekOffset(prev => Math.max(0, prev - 1))}
+            className="p-1.5 rounded-lg hover:bg-background disabled:opacity-30 disabled:pointer-events-none text-muted-foreground hover:text-foreground transition-colors"
             title="Previous Week"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -369,9 +374,9 @@ export function ExpertAvailabilityManager({
         </div>
       </div>
 
-      {/* Horizontal 7-Day Strip */}
-      <div>
-        <div className="grid grid-cols-7 gap-2">
+      {/* Horizontal 7-Day Ruled Planner Grid */}
+      <div className="relative z-10">
+        <div className="grid grid-cols-7 divide-x divide-border/60 bg-muted/30 rounded-xl border border-border overflow-hidden shadow-2xs">
           {weekDates.map(item => {
             const isSelected = selectedDayKey === item.dayKey;
             const slotsCount = getEffectiveSlots(item.dayKey, item.dateKey).length;
@@ -389,18 +394,18 @@ export function ExpertAvailabilityManager({
                     setScope('date');
                   }
                 }}
-                className={`flex flex-col items-center justify-center p-2 sm:p-2.5 rounded-xl border text-center transition-all relative ${isSelected
-                    ? 'border-primary bg-primary/10 text-primary ring-2 ring-primary/20 shadow-sm'
-                    : 'border-border bg-card hover:border-primary/40 text-foreground'
+                className={`desk-press flex flex-col items-center justify-center p-2 sm:p-2.5 text-center transition-all relative ${isSelected
+                    ? 'bg-card text-primary font-bold shadow-xs border-t-2 border-t-primary'
+                    : 'hover:bg-background/80 text-foreground'
                   }`}
               >
                 {item.isToday && (
                   <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary" title="Today" />
                 )}
-                <span className="text-xs font-bold capitalize">
+                <span className="text-[10px] uppercase tracking-wider font-bold opacity-60">
                   {item.dayKey}
                 </span>
-                <span className="text-[11px] text-muted-foreground mt-0.5">
+                <span className="text-lg font-light mt-0.5">
                   {item.dayNumber}
                 </span>
                 <span className={`text-[10px] font-semibold mt-1 px-1.5 py-0.5 rounded-full ${hasSlots

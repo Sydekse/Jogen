@@ -6,6 +6,9 @@ import { paymentService } from '@/src/services/paymentService';
 import { BookingChannel } from '@/src/types/booking';
 import { ExpertDetail } from '@/src/types/expert';
 
+import { DogEarCorner } from '@/src/components/ui/DogEarCorner';
+import { SecurityWatermark } from '@/src/components/ui/SecurityWatermark';
+
 interface BookingCheckoutModalProps {
   expert: ExpertDetail;
   selectedDay: string;
@@ -134,49 +137,56 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
   const totalETB = rate + platformFee;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-card rounded-2xl border border-border shadow-xl max-w-lg w-full p-6 space-y-6 animate-in fade-in zoom-in-95">
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-card rounded-2xl border border-border shadow-2xl max-w-lg w-full p-6 space-y-6 modal-docket-unfold relative overflow-hidden">
+        {/* Subtle Dog-Ear Document Fold */}
+        <DogEarCorner size="md" />
+
+        {/* Security Watermark */}
+        <SecurityWatermark className="w-48 h-48 right-0 bottom-0 text-foreground/[0.035] dark:text-foreground/[0.05]" />
+
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-border pb-4">
+        <div className="flex items-center justify-between border-b border-border pb-4 relative z-10">
           <div>
             <h2 className="text-xl font-bold text-foreground">
-              Confirm Advisory Reservation
+              Confirm Consultation Booking
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Review details and select consultation channel
+              Review session details and select your communication channel
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground text-lg font-bold"
+            className="desk-press w-8 h-8 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground text-sm font-bold transition-colors"
+            title="Close"
           >
             ✕
           </button>
         </div>
 
         {error && (
-          <div className="p-3 bg-destructive/10 text-destructive text-xs font-medium rounded-lg border border-destructive/20">
+          <div className="p-3 bg-destructive/10 text-destructive text-xs font-medium rounded-xl border border-destructive/20 relative z-10">
             {error}
           </div>
         )}
 
         {/* Expert & Time Summary */}
-        <div className="bg-primary/10 p-4 rounded-xl border border-primary/20 space-y-2">
+        <div className="bg-primary/10 p-4 rounded-xl border border-primary/20 space-y-2 relative z-10">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm font-bold text-foreground">{expert.full_name}</p>
               <p className="text-xs text-primary font-medium">{expert.title}</p>
             </div>
-              <span className="text-xs font-semibold px-2 py-0.5 bg-primary/15 text-primary rounded-md">
-                {selectedDate
-                  ? selectedDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
-                  : selectedDay.toUpperCase()} ({selectedSlot})
-              </span>
+            <span className="text-xs font-semibold px-2 py-0.5 bg-primary/15 text-primary rounded-md font-mono">
+              {selectedDate
+                ? selectedDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+                : selectedDay.toUpperCase()} ({selectedSlot})
+            </span>
           </div>
         </div>
 
         {/* Consultation Channel Options */}
-        <div className="space-y-2">
+        <div className="space-y-2 relative z-10">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
             Select Channel
           </label>
@@ -190,7 +200,7 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
                 key={c.key}
                 type="button"
                 onClick={() => setChannel(c.key as BookingChannel)}
-                className={`py-3 px-2 text-xs font-bold rounded-xl border text-center transition-colors ${
+                className={`desk-press py-3 px-2 text-xs font-bold rounded-xl border text-center transition-all ${
                   channel === c.key
                     ? 'border-primary bg-primary text-primary-foreground shadow-sm'
                     : 'border-border bg-muted text-foreground hover:border-primary/50'
@@ -203,7 +213,7 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
         </div>
 
         {/* Price Breakdown */}
-        <div className="border-t border-border pt-4 space-y-2 text-xs text-muted-foreground">
+        <div className="border-t border-border pt-4 space-y-2 text-xs text-muted-foreground relative z-10">
           <div className="flex justify-between">
             <span>Expert Rate ({duration}-min)</span>
             <span className="font-semibold">{rate.toLocaleString()} ETB</span>
@@ -219,11 +229,11 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="pt-2 flex gap-3">
+        <div className="pt-2 flex gap-3 relative z-10">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-3 bg-muted hover:bg-accent text-foreground text-xs font-bold rounded-xl transition-colors"
+            className="desk-press flex-1 py-3 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-xl transition-colors"
           >
             Cancel
           </button>
@@ -231,7 +241,7 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
             type="button"
             disabled={submitting}
             onClick={handleConfirmReservation}
-            className="flex-1 py-3 bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground text-xs font-bold rounded-xl transition-colors shadow-sm"
+            className="desk-press flex-1 py-3 bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground text-xs font-bold rounded-xl transition-colors shadow-sm"
           >
             {submitting ? 'Reserving...' : 'Confirm & Reserve Slot'}
           </button>
