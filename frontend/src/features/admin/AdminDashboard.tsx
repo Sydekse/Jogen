@@ -145,7 +145,7 @@ export function AdminDashboard() {
                     {expert.rate_per_session && (
                       <div className="flex items-center gap-2">
                         <DollarSign className="w-3.5 h-3.5 text-primary" />
-                        <span>Rate: <strong className="text-foreground">{expert.rate_per_session} ETB / session</strong></span>
+                        <span>Rate: <strong className="text-foreground">{expert.rate_per_session} ETB / hr</strong></span>
                       </div>
                     )}
                     {expert.wallet_provider && (

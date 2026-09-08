@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import { 
-  User, Briefcase, FileUp, Save, LogOut, Camera, X, 
+import {
+  User, Briefcase, FileUp, Save, LogOut, Camera, X,
   CheckCircle2, Clock, Award
 } from "lucide-react";
 import { useModal } from "@/src/context/ModalContext";
@@ -65,7 +65,7 @@ export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate
   // Status computation - robust detection of expert status
   const expertDataObj = userProfile?.expert_data as any;
   const expertStatus = (expertDataObj?.verification_status as string) || (userProfile?.verification_status as string) || 'unverified';
-  
+
   // A user is a verified expert ONLY if their verification status is 'verified', or verified role
   const isVerifiedExpert = Boolean(
     expertStatus === 'verified' ||
@@ -208,7 +208,7 @@ export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate
   };
 
   // Membership date
-  const memberDate = userProfile?.date_joined 
+  const memberDate = userProfile?.date_joined
     ? new Date(userProfile.date_joined as string).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
     : "September 2026";
 
@@ -229,9 +229,9 @@ export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate
         <div className="md:col-span-1 space-y-6">
           <div className="bg-card border border-border rounded-2xl p-6 text-center relative overflow-hidden shadow-xs">
             {/* Authentic Brass Paperclip */}
-            <div 
-              className="absolute -top-3 right-6 w-4 h-10 border-2 border-amber-600/60 dark:border-amber-400/60 rounded-full z-20 pointer-events-none transform rotate-12 bg-transparent shadow-xs" 
-              aria-hidden="true" 
+            <div
+              className="absolute -top-3 right-6 w-4 h-10 border-2 border-amber-600/60 dark:border-amber-400/60 rounded-full z-20 pointer-events-none transform rotate-12 bg-transparent shadow-xs"
+              aria-hidden="true"
             />
             <DogEarCorner size="md" />
             <SecurityWatermark className="w-36 h-36 -right-6 -bottom-6 text-foreground/[0.035] dark:text-foreground/[0.05]" />
@@ -266,7 +266,7 @@ export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate
               </div>
 
               <h2 className="font-bold text-lg text-foreground">{formData.name || "Set your name"}</h2>
-              
+
               {/* Verification Status Badge */}
               <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border shadow-2xs">
                 {isVerifiedExpert ? (
@@ -326,7 +326,7 @@ export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate
           <div className="bg-card border border-border rounded-2xl p-6 relative overflow-hidden shadow-xs">
             <DogEarCorner size="sm" />
             <h3 className="font-bold text-lg text-foreground mb-4">Personal Information</h3>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-1.5">
@@ -412,7 +412,7 @@ export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate
           {isVerifiedExpert ? (
             <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50 rounded-2xl p-6 relative overflow-hidden shadow-xs">
               <DogEarCorner size="sm" />
-              
+
               <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-400 font-bold mb-2">
                 <Award className="w-5 h-5 text-emerald-600" />
                 <h3 className="text-lg">Expert Accreditation Active</h3>
@@ -430,9 +430,19 @@ export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate
                   </span>
                 </div>
                 <div className="bg-card/60 dark:bg-card/30 p-2.5 rounded-xl border border-emerald-200/40">
-                  <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Session Rate</span>
+                  <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Hourly Rate</span>
                   <span className="text-foreground font-bold block mt-0.5">
-                    {expertDataObj?.rate_per_session ? `${expertDataObj.rate_per_session} ETB / 30m` : "1,500 ETB / 30m"}
+                    {(() => {
+                      const rawRate = expertDataObj?.rate ?? expertDataObj?.rate_per_session ?? (userProfile as any)?.rate ?? (userProfile as any)?.rate_per_session;
+                      if (rawRate !== undefined && rawRate !== null && rawRate !== "") {
+                        const num = Number(rawRate);
+                        if (!isNaN(num)) {
+                          return `${num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ETB / hr`;
+                        }
+                        return `${rawRate} ETB / hr`;
+                      }
+                      return "Not specified";
+                    })()}
                   </span>
                 </div>
                 <div className="bg-card/60 dark:bg-card/30 p-2.5 rounded-xl border border-emerald-200/40">
@@ -481,8 +491,8 @@ export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate
               {isRejected && !dismissedBanners['rejected'] && (
                 <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 rounded-2xl p-6 mb-6 relative overflow-hidden shadow-xs">
                   <DogEarCorner size="sm" />
-                  <button 
-                    onClick={() => dismissBanner('rejected')} 
+                  <button
+                    onClick={() => dismissBanner('rejected')}
                     className="absolute top-4 right-4 text-rose-700/50 hover:text-rose-700 dark:text-rose-500/50 hover:dark:text-rose-500 desk-press"
                   >
                     <X className="w-4 h-4" />
@@ -493,7 +503,7 @@ export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate
                   </p>
                 </div>
               )}
-              
+
               {/* Become an Expert Application Card */}
               <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 relative overflow-hidden shadow-xs">
                 <DogEarCorner size="sm" />
@@ -543,11 +553,11 @@ export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-semibold text-foreground mb-1.5">
-                            Rate per Session (ETB)
+                            Hourly Rate
                           </label>
                           <input
                             type="number"
-                            placeholder="e.g. 1500"
+                            placeholder="e.g. 2000"
                             value={expertData.rate}
                             onChange={(e) => setExpertData({ ...expertData, rate: e.target.value })}
                             className="w-full px-4 py-2 bg-card border border-border focus:border-primary rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
@@ -572,7 +582,7 @@ export function ProfileScreen({ isExpert, onLogout, userProfile, onProfileUpdate
                             onClick={() => licenseInputRef.current?.click()}
                             className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-card border border-border border-dashed hover:border-primary/50 rounded-xl text-sm text-muted-foreground hover:text-foreground transition-colors desk-press"
                           >
-                            <FileUp className="w-4 h-4 text-primary" /> 
+                            <FileUp className="w-4 h-4 text-primary" />
                             {licenseFile ? licenseFile.name : "Upload PDF or Image"}
                           </button>
                         </div>
