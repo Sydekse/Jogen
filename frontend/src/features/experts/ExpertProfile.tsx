@@ -129,37 +129,37 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
       const validSlots = isPast
         ? []
         : allSlots.filter(slot => {
-            const isPM = slot.includes('PM');
-            const [hStr, mStr] = slot.split(' ')[0].split(':');
-            let h = parseInt(hStr, 10);
-            const m = parseInt(mStr, 10);
-            if (isPM && h !== 12) h += 12;
-            if (!isPM && h === 12) h = 0;
+          const isPM = slot.includes('PM');
+          const [hStr, mStr] = slot.split(' ')[0].split(':');
+          let h = parseInt(hStr, 10);
+          const m = parseInt(mStr, 10);
+          if (isPM && h !== 12) h += 12;
+          if (!isPM && h === 12) h = 0;
 
-            const slotStart = new Date(d);
-            slotStart.setHours(h, m, 0, 0);
+          const slotStart = new Date(d);
+          slotStart.setHours(h, m, 0, 0);
 
-            // If today, cannot book slots that already passed
-            if (isToday && slotStart <= now) {
+          // If today, cannot book slots that already passed
+          if (isToday && slotStart <= now) {
+            return false;
+          }
+
+          const slotEnd = new Date(slotStart.getTime() + 30 * 60000);
+
+          // Filter out if booked by another client
+          if (expert?.booked_slots && expert.booked_slots.length > 0) {
+            const isOverlapping = expert.booked_slots.some(b => {
+              const bStart = new Date(b.start);
+              const bEnd = new Date(b.end);
+              return slotStart < bEnd && slotEnd > bStart;
+            });
+            if (isOverlapping) {
               return false;
             }
+          }
 
-            const slotEnd = new Date(slotStart.getTime() + 30 * 60000);
-
-            // Filter out if booked by another client
-            if (expert?.booked_slots && expert.booked_slots.length > 0) {
-              const isOverlapping = expert.booked_slots.some(b => {
-                const bStart = new Date(b.start);
-                const bEnd = new Date(b.end);
-                return slotStart < bEnd && slotEnd > bStart;
-              });
-              if (isOverlapping) {
-                return false;
-              }
-            }
-
-            return true;
-          });
+          return true;
+        });
 
       return {
         dayKey,
@@ -220,8 +220,8 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
   const availableSlots = activeDateItem?.slots || [];
 
   // Financial Calculations
-  const perMinuteRate = Math.round(Number(expert?.rate_per_session || 0) / 30);
-  const total = perMinuteRate * duration;
+  const hourlyRate = Number(expert?.rate_per_session || 0);
+  const total = Math.round((hourlyRate * duration) / 60);
   const platformFee = Math.round(total * 0.0125);
 
   const handleBook = () => {
@@ -258,8 +258,8 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
               <SecurityWatermark className="w-48 h-48 right-0 -bottom-6 text-foreground/[0.03] dark:text-foreground/[0.045]" />
 
               {/* Brass Paperclip SVG Motif */}
-              <div 
-                className="absolute -top-3 right-8 w-6 h-14 border-[2.5px] border-amber-600/60 dark:border-amber-400/60 rounded-full rotate-12 pointer-events-none opacity-85 shadow-xs z-10" 
+              <div
+                className="absolute -top-3 right-8 w-6 h-14 border-[2.5px] border-amber-600/60 dark:border-amber-400/60 rounded-full rotate-12 pointer-events-none opacity-85 shadow-xs z-10"
                 title="Paperclip"
               />
 
@@ -408,10 +408,10 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
                           isSelected
                             ? "bg-primary text-primary-foreground font-bold shadow-xs"
                             : dayItem.isPast
-                            ? "opacity-45 hover:opacity-80 text-muted-foreground hover:bg-background/60"
-                            : dayItem.hasSlots
-                            ? "hover:bg-background text-foreground font-medium"
-                            : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
+                              ? "opacity-45 hover:opacity-80 text-muted-foreground hover:bg-background/60"
+                              : dayItem.hasSlots
+                                ? "hover:bg-background text-foreground font-medium"
+                                : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
                         )}
                       >
                         <span className="text-[10px] uppercase tracking-tighter opacity-80">
@@ -507,8 +507,8 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
 
               {/* Summary */}
               <div className="bg-muted/70 rounded-xl p-3.5 mb-4 space-y-2">
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">{perMinuteRate} ETB × {duration} min</span><span className="font-semibold text-foreground">{total} ETB</span></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Platform fee (1.25%)</span><span className="font-semibold text-foreground">{platformFee} ETB</span></div>
+                <div className="flex justify-between text-sm"><span className="text-muted-foreground">{duration} min consultation fee</span><span className="font-semibold text-foreground">{total.toLocaleString()} ETB</span></div>
+                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Platform fee (1.25%)</span><span className="font-semibold text-foreground">{platformFee.toLocaleString()} ETB</span></div>
                 <div className="flex justify-between text-sm pt-2 border-t border-border font-bold"><span className="text-foreground">Total Escrow</span><span className="text-foreground">{(total + platformFee).toLocaleString()} ETB</span></div>
               </div>
 

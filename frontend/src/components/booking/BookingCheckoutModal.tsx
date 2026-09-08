@@ -64,18 +64,18 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
       const daysMap: Record<string, number> = {
         'sun': 0, 'mon': 1, 'tue': 2, 'wed': 3, 'thu': 4, 'fri': 5, 'sat': 6
       };
-      
+
       const targetDay = daysMap[selectedDay.toLowerCase()] ?? today.getDay();
       let diff = targetDay - today.getDay();
-      
+
       if (diff < 0) {
         diff += 7;
       }
-      
+
       // If it's today but the selected time has already passed, push it to next week
       if (diff === 0) {
         if (startH < today.getHours() || (startH === today.getHours() && startM <= today.getMinutes())) {
-           diff += 7;
+          diff += 7;
         }
       }
 
@@ -121,7 +121,7 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
       const { checkout_url } = await paymentService.initializeEscrow(booking.id, token);
       if (onSuccess) onSuccess();
       window.location.href = checkout_url;
-      
+
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : 'Reservation failed. Please try again.'
@@ -131,8 +131,8 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
     }
   };
 
-  const perMinuteRate = Math.round(parseFloat(expert.rate_per_session) / 30) || 0;
-  const rate = perMinuteRate * duration;
+  const hourlyRate = parseFloat(expert.rate_per_session || '0') || 0;
+  const rate = Math.round((hourlyRate * duration) / 60);
   const platformFee = rate * 0.0125;
   const totalETB = rate + platformFee;
 
@@ -200,11 +200,10 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
                 key={c.key}
                 type="button"
                 onClick={() => setChannel(c.key as BookingChannel)}
-                className={`desk-press py-3 px-2 text-xs font-bold rounded-xl border text-center transition-all ${
-                  channel === c.key
+                className={`desk-press py-3 px-2 text-xs font-bold rounded-xl border text-center transition-all ${channel === c.key
                     ? 'border-primary bg-primary text-primary-foreground shadow-sm'
                     : 'border-border bg-muted text-foreground hover:border-primary/50'
-                }`}
+                  }`}
               >
                 {c.label}
               </button>

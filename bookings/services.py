@@ -49,7 +49,7 @@ def reserve_consultation_slot(
 
         # 3. Create reservation with locked prorated rate_snapshot
         duration_minutes = Decimal(str((scheduled_end - scheduled_start).total_seconds() / 60.0))
-        prorated_rate = (expert.rate_per_session * (duration_minutes / Decimal("30"))).quantize(
+        prorated_rate = (expert.rate_per_session * (duration_minutes / Decimal("60"))).quantize(
             Decimal("0.01")
         )
 

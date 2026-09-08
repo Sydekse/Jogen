@@ -39,7 +39,7 @@ def test_create_booking_locks_rate_snapshot():
 
     response = api_client.post("/api/v1/consultations/", payload, format="json")
     assert response.status_code == 201
-    assert response.data["rate_snapshot"] == "1000.00"
+    assert response.data["rate_snapshot"] == "500.00"
     assert response.data["status"] == "pending_payment"
 
 
