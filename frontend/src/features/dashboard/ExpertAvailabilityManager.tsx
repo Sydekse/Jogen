@@ -43,13 +43,37 @@ interface SlotDefinition {
   range: string;     // e.g. "09:00-09:30"
 }
 
-const PERIODS: { id: 'morning' | 'afternoon' | 'evening'; title: string; icon: React.ElementType; timeRange: string; slots: SlotDefinition[] }[] = [
+const PERIODS: { id: 'night' | 'morning' | 'afternoon' | 'evening'; title: string; icon: React.ElementType; timeRange: string; slots: SlotDefinition[] }[] = [
+  {
+    id: 'night',
+    title: 'Night & Early Morning',
+    icon: Moon,
+    timeRange: '12:00 AM – 06:00 AM',
+    slots: [
+      { timeLabel: '12:00 AM', range: '00:00-00:30' },
+      { timeLabel: '12:30 AM', range: '00:30-01:00' },
+      { timeLabel: '01:00 AM', range: '01:00-01:30' },
+      { timeLabel: '01:30 AM', range: '01:30-02:00' },
+      { timeLabel: '02:00 AM', range: '02:00-02:30' },
+      { timeLabel: '02:30 AM', range: '02:30-03:00' },
+      { timeLabel: '03:00 AM', range: '03:00-03:30' },
+      { timeLabel: '03:30 AM', range: '03:30-04:00' },
+      { timeLabel: '04:00 AM', range: '04:00-04:30' },
+      { timeLabel: '04:30 AM', range: '04:30-05:00' },
+      { timeLabel: '05:00 AM', range: '05:00-05:30' },
+      { timeLabel: '05:30 AM', range: '05:30-06:00' },
+    ],
+  },
   {
     id: 'morning',
     title: 'Morning',
     icon: Sunrise,
-    timeRange: '08:00 AM – 12:00 PM',
+    timeRange: '06:00 AM – 12:00 PM',
     slots: [
+      { timeLabel: '06:00 AM', range: '06:00-06:30' },
+      { timeLabel: '06:30 AM', range: '06:30-07:00' },
+      { timeLabel: '07:00 AM', range: '07:00-07:30' },
+      { timeLabel: '07:30 AM', range: '07:30-08:00' },
       { timeLabel: '08:00 AM', range: '08:00-08:30' },
       { timeLabel: '08:30 AM', range: '08:30-09:00' },
       { timeLabel: '09:00 AM', range: '09:00-09:30' },
@@ -64,7 +88,7 @@ const PERIODS: { id: 'morning' | 'afternoon' | 'evening'; title: string; icon: R
     id: 'afternoon',
     title: 'Afternoon',
     icon: Sun,
-    timeRange: '12:00 PM – 05:00 PM',
+    timeRange: '12:00 PM – 06:00 PM',
     slots: [
       { timeLabel: '12:00 PM', range: '12:00-12:30' },
       { timeLabel: '12:30 PM', range: '12:30-13:00' },
@@ -76,20 +100,28 @@ const PERIODS: { id: 'morning' | 'afternoon' | 'evening'; title: string; icon: R
       { timeLabel: '03:30 PM', range: '15:30-16:00' },
       { timeLabel: '04:00 PM', range: '16:00-16:30' },
       { timeLabel: '04:30 PM', range: '16:30-17:00' },
+      { timeLabel: '05:00 PM', range: '17:00-17:30' },
+      { timeLabel: '05:30 PM', range: '17:30-18:00' },
     ],
   },
   {
     id: 'evening',
-    title: 'Evening',
+    title: 'Evening & Night',
     icon: Moon,
-    timeRange: '05:00 PM – 08:00 PM',
+    timeRange: '06:00 PM – 12:00 AM',
     slots: [
-      { timeLabel: '05:00 PM', range: '17:00-17:30' },
-      { timeLabel: '05:30 PM', range: '17:30-18:00' },
       { timeLabel: '06:00 PM', range: '18:00-18:30' },
       { timeLabel: '06:30 PM', range: '18:30-19:00' },
       { timeLabel: '07:00 PM', range: '19:00-19:30' },
       { timeLabel: '07:30 PM', range: '19:30-20:00' },
+      { timeLabel: '08:00 PM', range: '20:00-20:30' },
+      { timeLabel: '08:30 PM', range: '20:30-21:00' },
+      { timeLabel: '09:00 PM', range: '21:00-21:30' },
+      { timeLabel: '09:30 PM', range: '21:30-22:00' },
+      { timeLabel: '10:00 PM', range: '22:00-22:30' },
+      { timeLabel: '10:30 PM', range: '22:30-23:00' },
+      { timeLabel: '11:00 PM', range: '23:00-23:30' },
+      { timeLabel: '11:30 PM', range: '23:30-24:00' },
     ],
   },
 ];
@@ -494,6 +526,13 @@ export function ExpertAvailabilityManager({
           </span>
           <button
             type="button"
+            onClick={() => applyPreset(PERIODS.flatMap(p => p.slots.map(s => s.range)))}
+            className="px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/30 text-primary font-bold hover:bg-primary/20 transition-colors"
+          >
+            24 Hours (All Day)
+          </button>
+          <button
+            type="button"
             onClick={() => applyPreset([
               '09:00-09:30', '09:30-10:00', '10:00-10:30', '10:30-11:00',
               '11:00-11:30', '11:30-12:00', '13:00-13:30', '13:30-14:00',
@@ -545,8 +584,8 @@ export function ExpertAvailabilityManager({
         </div>
       </div>
 
-      {/* Categorized Time Periods (Morning, Afternoon, Evening) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Categorized Time Periods (Night, Morning, Afternoon, Evening) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {PERIODS.map(period => {
           const PeriodIcon = period.icon;
           const periodRanges = period.slots.map(s => s.range);

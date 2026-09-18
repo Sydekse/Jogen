@@ -5,17 +5,24 @@ from .views import (
     ChapaWebhookView,
     InitializeEscrowPaymentView,
     SessionEndEscrowAdjustmentView,
+    WalletDetailView,
     WalletLinkingView,
+    WalletTopUpInitializeView,
+    WalletWithdrawalView,
 )
 
 urlpatterns = [
     path("initialize/", InitializeEscrowPaymentView.as_view(), name="initialize"),
     path("webhook/", ChapaWebhookView.as_view(), name="webhook"),
     path("<uuid:booking_id>/release/", AtomicEscrowReleaseView.as_view(), name="release"),
-    path("wallet/", WalletLinkingView.as_view(), name="wallet_linking"),
+    path("wallet/", WalletDetailView.as_view(), name="wallet_detail"),
+    path("wallet/link/", WalletLinkingView.as_view(), name="wallet_linking"),
+    path("wallet/topup/", WalletTopUpInitializeView.as_view(), name="wallet_topup"),
+    path("wallet/withdraw/", WalletWithdrawalView.as_view(), name="wallet_withdraw"),
     path(
         "<uuid:booking_id>/session-end/",
         SessionEndEscrowAdjustmentView.as_view(),
         name="session_end_adjustment",
     ),
 ]
+

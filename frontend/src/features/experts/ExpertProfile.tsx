@@ -509,19 +509,22 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
               <div className="bg-muted/70 rounded-xl p-3.5 mb-4 space-y-2">
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">{duration} min consultation fee</span><span className="font-semibold text-foreground">{total.toLocaleString()} ETB</span></div>
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">Platform fee (1.25%)</span><span className="font-semibold text-foreground">{platformFee.toLocaleString()} ETB</span></div>
-                <div className="flex justify-between text-sm pt-2 border-t border-border font-bold"><span className="text-foreground">Total Escrow</span><span className="text-foreground">{(total + platformFee).toLocaleString()} ETB</span></div>
+                <div className="flex justify-between text-sm pt-2 border-t border-border font-bold"><span className="text-foreground">Total Hold</span><span className="text-primary">{(total + platformFee).toLocaleString()} ETB</span></div>
               </div>
 
               {/* Payment Method */}
-              <div className="mb-4">
-                <p className="text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">Mobile Wallet</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {(["telebirr", "cbe"] as const).map((pm) => (
-                    <button key={pm} onClick={() => setPaymentMethod(pm)} className={cn("py-3 rounded-xl text-xs font-bold transition-colors border", paymentMethod === pm ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40")}>
-                      {pm === "telebirr" ? "Telebirr" : "CBE Birr"}
-                    </button>
-                  ))}
+              <div className="mb-4 p-3 bg-primary/5 border border-primary/20 rounded-xl flex items-center justify-between text-xs">
+                <div>
+                  <span className="font-bold text-foreground block">Payment Method</span>
+                  <span className="text-muted-foreground">Prepaid Wallet</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => router.push('/wallet')}
+                  className="px-2.5 py-1 bg-primary/10 text-primary font-bold rounded-lg hover:bg-primary/20 transition-colors"
+                >
+                  Manage Wallet
+                </button>
               </div>
 
               <button
@@ -529,9 +532,10 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
                 onClick={handleBook}
                 className="desk-press w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-40 shadow-xs"
               >
-                {selectedSlot ? "Authorize Payment & Enter Session" : "Select a Time Slot to Continue"}
+                {selectedSlot ? "Confirm & Reserve Slot" : "Select a Time Slot to Continue"}
               </button>
-              {selectedSlot && <p className="text-xs text-muted-foreground text-center mt-2">Funds held in escrow until session completes</p>}
+              {selectedSlot && <p className="text-xs text-muted-foreground text-center mt-2">Funds held in wallet pre-authorization lock until session ends</p>}
+
             </div>
           </div>
         </div>
@@ -554,7 +558,7 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
                 .then(data => setExpert(data))
                 .catch(console.error);
             }
-            router.push('/dashboard');
+            router.push('/bookings');
           }}
         />
       )}

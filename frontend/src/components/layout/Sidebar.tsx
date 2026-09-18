@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageSquare, Users, BarChart3, Shield, ChevronLeft, ChevronRight, User, Plus, ChevronDown, ChevronUp, Clock, Edit2, Trash2 } from "lucide-react";
+import { MessageSquare, Users, BarChart3, Shield, ChevronLeft, ChevronRight, User, Plus, ChevronDown, ChevronUp, Clock, Edit2, Trash2, Wallet } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { JogenLogo } from "@/src/components/ui/jogenLogo";
 import { useUser } from "@/src/context/UserContext";
@@ -13,6 +13,7 @@ import { useModal } from "@/src/context/ModalContext";
 const NAV_ITEMS = [
   { id: "experts", label: "Find Experts", icon: Users, href: "/experts" },
   { id: "bookings", label: "My Bookings", icon: Clock, href: "/bookings" },
+  { id: "wallet", label: "My Wallet", icon: Wallet, href: "/wallet" },
   { id: "dashboard", label: "Expert Dashboard", icon: BarChart3, href: "/dashboard" },
   { id: "admin", label: "Admin Console", icon: Shield, href: "/admin" },
   { id: "ai", label: "AI Assistant", icon: MessageSquare, href: "/" },
@@ -35,9 +36,11 @@ export function Sidebar({
   if (pathname === "/") activeId = "ai";
   else if (pathname.startsWith("/experts")) activeId = "experts";
   else if (pathname.startsWith("/bookings")) activeId = "bookings";
+  else if (pathname.startsWith("/wallet")) activeId = "wallet";
   else if (pathname.startsWith("/dashboard")) activeId = "dashboard";
   else if (pathname.startsWith("/admin")) activeId = "admin";
   else if (pathname.startsWith("/profile")) activeId = "profile";
+
 
   const fullName = (userProfile?.full_name as string) || "";
   const profilePictureUrl = userProfile?.profile_picture as string | undefined;
@@ -225,7 +228,9 @@ export function MobileBottomNav() {
     { id: "ai", label: "AI", icon: MessageSquare, href: "/" },
     { id: "experts", label: "Experts", icon: Users, href: "/experts" },
     { id: "bookings", label: "Bookings", icon: Clock, href: "/bookings" },
+    { id: "wallet", label: "Wallet", icon: Wallet, href: "/wallet" },
   ];
+
 
   const expertDataObj = userProfile?.expert_data as any;
   if (expertDataObj?.verification_status === "verified") {
