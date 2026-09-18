@@ -108,18 +108,24 @@ class ChapaService:
         except requests.RequestException as e:
             return {"valid": False, "message": str(e)}
 
-    def transfer_to_expert(self, expert, amount, tx_ref: str):
+    def transfer_to_expert(
+        self, expert, amount, tx_ref: str, account_number: str = "", provider: str = "telebirr"
+    ):
         """
-        Calls POST /v1/transfers to payout expert earnings upon session completion.
+        Calls POST /v1/transfers to payout earnings/withdrawals to an expert or client account.
         """
         url = f"{self.BASE_URL}/transfers"
+        account_name = getattr(expert, "title", None) or "Account Holder"
+        acc_num = account_number or getattr(expert, "wallet_account_number", "") or "0911000000"
+        bank_code = provider or getattr(expert, "wallet_provider", "telebirr") or "telebirr"
+
         payload = {
-            "account_name": expert.title or "Expert Advisor",
-            "account_number": expert.wallet_account_number,
+            "account_name": account_name,
+            "account_number": acc_num,
             "amount": str(amount),
             "currency": "ETB",
             "reference": f"PAYOUT-{tx_ref}",
-            "bank_code": expert.wallet_provider,
+            "bank_code": bank_code,
         }
 
         try:

@@ -1,27 +1,41 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Bell, Sun, Moon } from "lucide-react";
+import Link from "next/link";
+import { Bell, Sun, Moon, Wallet } from "lucide-react";
 import { useUser } from "@/src/context/UserContext";
 import { notificationService, Notification } from "@/src/services/notificationService";
+import { paymentService } from "@/src/services/paymentService";
 
 export function TopBar() {
   const { darkMode, setDarkMode } = useUser();
   
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [walletBalance, setWalletBalance] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const fetchNotifications = async () => {
+    const fetchNotificationsAndWallet = async () => {
       const token = localStorage.getItem('access_token');
       if (!token) return;
       try {
-        const data = await notificationService.getNotifications(token);
-        setNotifications(data);
+        const [notifData, walletData] = await Promise.all([
+          notificationService.getNotifications(token).catch(() => []),
+          paymentService.getWallet().catch(() => null),
+        ]);
+        setNotifications(notifData);
+        if (walletData?.available_balance) {
+          setWalletBalance(parseFloat(walletData.available_balance).toFixed(2));
+        }
       } catch (err) {
-        console.error("Failed to fetch notifications", err);
+        console.error("Failed to fetch topbar data", err);
       }
     };
-    fetchNotifications();
+    fetchNotificationsAndWallet();
+
+    const handleWalletUpdated = () => {
+      fetchNotificationsAndWallet();
+    };
+    window.addEventListener("walletUpdated", handleWalletUpdated);
 
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -31,8 +45,10 @@ export function TopBar() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("walletUpdated", handleWalletUpdated);
     };
   }, []);
+
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
@@ -62,13 +78,22 @@ export function TopBar() {
   
   return (
     <header className="relative z-50 h-14 border-b border-border bg-card/60 backdrop-blur-sm flex items-center justify-between px-4 sm:px-6 gap-3 shrink-0">
-      {/* Escrow Status */}
+      {/* Escrow Status & Wallet Indicator */}
       <div className="flex items-center gap-2.5 overflow-hidden">
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 shrink-0">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="tracking-wide">Escrow Secured</span>
+          <span className="tracking-wide">Escrow Ledger</span>
         </div>
+        <Link
+          href="/wallet"
+          className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-[11px] font-bold text-primary hover:bg-primary/20 transition-all shrink-0"
+          title="Manage Wallet & Prepaid Balance"
+        >
+          <Wallet className="w-3.5 h-3.5" />
+          <span>{walletBalance !== null ? `${walletBalance} ETB` : "Wallet"}</span>
+        </Link>
       </div>
+
 
       {/* Right Controls: Notifications & Dark Mode */}
       <div className="flex items-center gap-2">

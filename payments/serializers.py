@@ -1,8 +1,9 @@
 import re
+from decimal import Decimal
 
 from rest_framework import serializers
 
-from .models import EscrowTransaction
+from .models import EscrowTransaction, UserWallet, WalletTransaction
 
 
 class EscrowInitializeSerializer(serializers.Serializer):
@@ -64,3 +65,57 @@ class SessionEndAdjustmentSerializer(serializers.Serializer):
     """
 
     duration_seconds = serializers.IntegerField(min_value=0, required=True)
+
+
+class WalletTopUpInitializeSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=Decimal("1.00"), required=True
+    )
+    return_url = serializers.URLField(required=False)
+
+
+class WalletTransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WalletTransaction
+        fields = [
+            "id",
+            "transaction_type",
+            "amount",
+            "running_balance",
+            "booking",
+            "reference",
+            "status",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
+class UserWalletSerializer(serializers.ModelSerializer):
+    available_balance = serializers.DecimalField(
+        max_digits=12, decimal_places=2, read_only=True
+    )
+
+    class Meta:
+        model = UserWallet
+        fields = [
+            "id",
+            "balance",
+            "reserved_balance",
+            "available_balance",
+            "currency",
+            "is_frozen",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class WalletWithdrawalSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=Decimal("1.00"), required=True
+    )
+    provider = serializers.ChoiceField(
+        choices=[("telebirr", "Telebirr"), ("cbe_birr", "CBE Birr"), ("mpesa", "M-Pesa")],
+        default="telebirr",
+    )
+    account_number = serializers.CharField(max_length=100, required=False, allow_blank=True)

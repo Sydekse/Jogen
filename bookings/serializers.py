@@ -21,6 +21,15 @@ class BookingUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(f"Invalid status transition to {value}.")
         return value
 
+    def validate(self, data):
+        status_val = data.get("status")
+        reason = data.get("cancellation_reason", "")
+        if status_val == "cancelled" and (not reason or not str(reason).strip()):
+            raise serializers.ValidationError(
+                {"cancellation_reason": "A reason is required to cancel this consultation."}
+            )
+        return data
+
 
 class BookingDetailSerializer(serializers.ModelSerializer):
     client_id = serializers.CharField(source="client.id", read_only=True)
@@ -60,12 +69,52 @@ class BookingDetailSerializer(serializers.ModelSerializer):
         return hasattr(obj, "review")
 
     def get_settlement(self, obj):
+        from decimal import Decimal
+
         if (
             hasattr(obj, "escrow_transaction")
             and obj.escrow_transaction
             and obj.escrow_transaction.raw_provider_response
         ):
-            return obj.escrow_transaction.raw_provider_response.get("settlement")
+            settlement = obj.escrow_transaction.raw_provider_response.get("settlement")
+            if settlement:
+                return settlement
+
+        charge_tx = obj.wallet_transactions.filter(transaction_type="booking_charge").first()
+        refund_tx = obj.wallet_transactions.filter(transaction_type="booking_refund_release").first()
+        payout_tx = obj.wallet_transactions.filter(transaction_type="expert_payout").first()
+
+        if charge_tx or refund_tx or payout_tx:
+            total_deposit = obj.rate_snapshot
+            gross_earned = charge_tx.amount if charge_tx else Decimal("0.00")
+            client_refund = refund_tx.amount if refund_tx else Decimal("0.00")
+
+            client_fee = (total_deposit * Decimal("0.0125")).quantize(Decimal("0.01"))
+            expert_fee = (gross_earned * Decimal("0.0125")).quantize(Decimal("0.01"))
+            expert_payout = payout_tx.amount if payout_tx else (gross_earned - expert_fee)
+            platform_fee = client_fee + expert_fee
+
+            decision = "prorated_adjustment" if client_refund > Decimal("0.00") else "full_completion"
+
+            duration_seconds = None
+            if charge_tx and charge_tx.raw_provider_response and "duration_seconds" in charge_tx.raw_provider_response:
+                duration_seconds = charge_tx.raw_provider_response["duration_seconds"]
+            elif total_deposit > Decimal("0.00") and gross_earned > Decimal("0.00"):
+                scheduled_seconds = int((obj.scheduled_end - obj.scheduled_start).total_seconds())
+                duration_seconds = int((gross_earned / total_deposit) * scheduled_seconds)
+
+            return {
+                "decision": decision,
+                "duration_seconds": duration_seconds,
+                "total_deposit": str(total_deposit),
+                "gross_earned": str(gross_earned),
+                "client_refund": str(client_refund),
+                "client_platform_fee": str(client_fee),
+                "expert_platform_fee": str(expert_fee),
+                "platform_fee": str(platform_fee),
+                "expert_payout": str(expert_payout),
+            }
+
         return None
 
 

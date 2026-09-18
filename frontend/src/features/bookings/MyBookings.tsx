@@ -73,6 +73,10 @@ export function MyBookings() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedInvoiceBooking, setSelectedInvoiceBooking] = useState<Booking | null>(null);
+  const [cancellingBooking, setCancellingBooking] = useState<Booking | null>(null);
+  const [cancellationReason, setCancellationReason] = useState("");
+  const [cancellationError, setCancellationError] = useState<string | null>(null);
+  const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
 
   // Update current time every 10 seconds for accurate countdowns
   useEffect(() => {
@@ -121,12 +125,11 @@ export function MyBookings() {
 
           const mode: SessionMode = b.channel === "chat" ? "text" : b.channel;
 
-          const isCurrentUserClient = Boolean(
-            (userProfile?.id && b.client_id && String(userProfile.id) === String(b.client_id)) ||
-            (userProfile?.phone_number && userProfile.phone_number === b.client_phone) ||
-            (userProfile?.email && b.client_email && userProfile.email === b.client_email) ||
-            (!userProfile?.is_expert)
+          const isCurrentUserExpert = Boolean(
+            (userProfile?.id && b.expert_user_id && String(userProfile.id) === String(b.expert_user_id)) ||
+            (userProfile?.is_expert === true)
           );
+          const isCurrentUserClient = !isCurrentUserExpert;
 
           const clientName = b.client_name || b.client_phone || "Client";
           const expertName = b.expert_name || "Unknown Expert";
@@ -179,16 +182,29 @@ export function MyBookings() {
       .finally(() => setLoading(false));
   }, [isAuthenticated, userProfile]);
 
-  const handleCancel = async (id: string) => {
-    if (!confirm("Are you sure you want to cancel this booking?")) return;
+  const handleConfirmCancellation = async () => {
+    if (!cancellingBooking) return;
+    const trimmedReason = cancellationReason.trim();
+    if (!trimmedReason) {
+      setCancellationError("A cancellation reason is required.");
+      return;
+    }
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
     if (!token) return;
+
+    setIsSubmittingCancel(true);
     try {
-      await bookingService.cancelBooking(id, token);
-      toast.success("Booking cancelled successfully.");
-      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: "cancelled" } : b));
+      await bookingService.cancelBooking(cancellingBooking.id, trimmedReason, token);
+      toast.success("Booking cancelled. Notification sent to the other party and funds released!");
+      setBookings(prev => prev.map(b => b.id === cancellingBooking.id ? { ...b, status: "cancelled" } : b));
+      window.dispatchEvent(new Event("walletUpdated"));
+      setCancellingBooking(null);
+      setCancellationReason("");
+      setCancellationError(null);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to cancel booking.");
+      setCancellationError(err instanceof Error ? err.message : "Failed to cancel booking.");
+    } finally {
+      setIsSubmittingCancel(false);
     }
   };
 
@@ -426,7 +442,14 @@ export function MyBookings() {
                             </button>
                           )}
                           {b.status === "upcoming" && !joinable && (
-                            <button onClick={() => handleCancel(b.id)} className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground border border-border px-4 py-2 rounded-lg hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-colors">
+                            <button
+                              onClick={() => {
+                                setCancellingBooking(b);
+                                setCancellationReason("");
+                                setCancellationError(null);
+                              }}
+                              className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground border border-border px-4 py-2 rounded-lg hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-colors"
+                            >
                               <X className="w-3.5 h-3.5" />Cancel
                             </button>
                           )}
@@ -594,6 +617,72 @@ export function MyBookings() {
                 className="desk-press py-3 px-5 border border-border text-foreground text-xs font-semibold rounded-xl hover:bg-muted transition-colors"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mandatory Cancellation Modal Checkpoint */}
+      {cancellingBooking && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6 md:p-8 space-y-5 shadow-2xl relative modal-docket-unfold overflow-hidden">
+            {/* Subtle Dog-Ear Document Fold */}
+            <DogEarCorner size="md" />
+
+            <button
+              onClick={() => { setCancellingBooking(null); setCancellationError(null); }}
+              className="desk-press absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted print:hidden z-20"
+              title="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div>
+              <div className="text-[10px] font-mono text-destructive uppercase tracking-wider mb-0.5">
+                DKT-CNC // MANDATORY CANCELLATION CHECKPOINT
+              </div>
+              <h2 className="text-xl font-bold text-foreground">
+                Cancel Consultation
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Please state the reason for cancelling your session with <strong className="text-foreground">{cancellingBooking.expert.name}</strong>. The other party will be notified, and held escrow funds will be unreserved.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-foreground">
+                Cancellation Reason <span className="text-destructive">*</span>
+              </label>
+              <textarea
+                rows={3}
+                value={cancellationReason}
+                onChange={(e) => { setCancellationReason(e.target.value); setCancellationError(null); }}
+                placeholder="e.g., Unforeseen scheduling conflict, emergency, or change in scope requirements..."
+                className="w-full p-3 bg-muted/40 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-destructive/50 text-foreground resize-none"
+                autoFocus
+              />
+              {cancellationError && (
+                <p className="text-xs font-semibold text-destructive">{cancellationError}</p>
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                disabled={isSubmittingCancel}
+                onClick={handleConfirmCancellation}
+                className="desk-press flex-1 py-3 bg-destructive text-destructive-foreground text-xs font-bold rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-sm disabled:opacity-50"
+              >
+                {isSubmittingCancel ? "Cancelling..." : "Confirm Cancellation"}
+              </button>
+              <button
+                type="button"
+                disabled={isSubmittingCancel}
+                onClick={() => { setCancellingBooking(null); setCancellationError(null); }}
+                className="desk-press py-3 px-5 border border-border text-foreground text-xs font-semibold rounded-xl hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                Keep Booking
               </button>
             </div>
           </div>

@@ -63,4 +63,17 @@ def reserve_consultation_slot(
             status="pending_payment",
         )
 
+        try:
+            from payments.wallet_service import WalletService
+
+            WalletService.hold_booking_funds(client, booking)
+            booking.status = "escrowed"
+            booking.save(update_fields=["status", "updated_at"])
+        except ValueError:
+            # If wallet balance is insufficient, leave status as 'pending_payment'
+            pass
+
         return booking
+
+
+

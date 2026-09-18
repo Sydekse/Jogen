@@ -45,14 +45,19 @@ export const bookingService = {
   /**
    * Cancel a booking (PATCH /api/v1/consultations/{id}/)
    */
-  async cancelBooking(bookingId: string, _token?: string): Promise<BookingDetail> {
+  async cancelBooking(bookingId: string, reason: string, _token?: string): Promise<BookingDetail> {
     const res = await fetchWithAuth(`${API_BASE_URL}/consultations/${bookingId}/`, {
       method: 'PATCH',
-      body: JSON.stringify({ status: 'cancelled', cancellation_reason: 'User cancelled' }),
+      body: JSON.stringify({ status: 'cancelled', cancellation_reason: reason }),
     });
 
     if (!res.ok) {
-      throw new Error('Failed to cancel the booking.');
+      const errorData = await res.json().catch(() => ({}));
+      const message =
+        errorData.cancellation_reason?.[0] ||
+        errorData.error?.message ||
+        'Failed to cancel the booking.';
+      throw new Error(message);
     }
 
     return res.json();

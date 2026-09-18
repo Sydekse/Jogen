@@ -103,7 +103,7 @@ class ConsultationDetailView(APIView):
     def patch(self, request, booking_id):
         try:
             booking = Booking.objects.get(
-                client=request.user,
+                Q(client=request.user) | Q(expert__user=request.user),
                 id=booking_id,
             )
         except Booking.DoesNotExist:
@@ -121,10 +121,43 @@ class ConsultationDetailView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        old_status = booking.status
         serializer = BookingUpdateSerializer(booking, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()
-            return Response(BookingDetailSerializer(booking).data, status=status.HTTP_200_OK)
+            updated_booking = serializer.save()
+
+            if request.data.get("status") == "cancelled" and old_status != "cancelled":
+                from payments.wallet_service import WalletService
+                reason_text = updated_booking.cancellation_reason or "No reason provided"
+                WalletService.release_booking_hold(updated_booking, reason=f"Cancellation: {reason_text}")
+
+                start_time_str = updated_booking.scheduled_start.strftime("%Y-%m-%d %H:%M UTC")
+                is_cancelled_by_client = (request.user == updated_booking.client)
+
+                client_name = updated_booking.client.full_name or updated_booking.client.phone_number or "Client"
+                expert_name = updated_booking.expert.user.full_name or updated_booking.expert.title or "Expert"
+
+                if is_cancelled_by_client:
+                    client_msg = f"Session on {start_time_str} cancelled. Reason: {reason_text}"
+                    expert_msg = f"Session on {start_time_str} cancelled by {client_name}. Reason: {reason_text}"
+                else:
+                    client_msg = f"Session on {start_time_str} cancelled by {expert_name}. Reason: {reason_text}"
+                    expert_msg = f"Session on {start_time_str} cancelled. Reason: {reason_text}"
+
+                NotificationService.create_and_dispatch(
+                    user=updated_booking.client,
+                    title="Booking Cancelled",
+                    message=client_msg,
+                    notification_type="booking_cancelled"
+                )
+                NotificationService.create_and_dispatch(
+                    user=updated_booking.expert.user,
+                    title="Booking Cancelled",
+                    message=expert_msg,
+                    notification_type="booking_cancelled"
+                )
+
+            return Response(BookingDetailSerializer(updated_booking).data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -153,6 +186,10 @@ class ConsultationDetailView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        if booking.status in {"pending_payment", "escrowed", "reserved"}:
+            from payments.wallet_service import WalletService
+            WalletService.release_booking_hold(booking, reason="Booking record removed")
 
         booking.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

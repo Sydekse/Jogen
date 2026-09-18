@@ -117,10 +117,22 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
         token
       );
 
+      // If funded directly from UserWallet (status === 'escrowed')
+      if (booking.status === 'escrowed') {
+        if (onSuccess) onSuccess();
+        return;
+      }
+
       // Initialize Escrow and redirect to Chapa Checkout
-      const { checkout_url } = await paymentService.initializeEscrow(booking.id, token);
-      if (onSuccess) onSuccess();
-      window.location.href = checkout_url;
+      try {
+        const { checkout_url } = await paymentService.initializeEscrow(booking.id, token);
+        if (onSuccess) onSuccess();
+        window.location.href = checkout_url;
+      } catch {
+        // Direct to wallet top-up if checkout initialization fails
+        if (onSuccess) onSuccess();
+        window.location.href = '/wallet';
+      }
 
     } catch (err: unknown) {
       setError(
@@ -131,10 +143,21 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
     }
   };
 
+
+  const [userWallet, setUserWallet] = useState<{ available_balance: string } | null>(null);
+
+  React.useEffect(() => {
+    paymentService.getWallet()
+      .then(w => setUserWallet(w))
+      .catch(() => null);
+  }, []);
+
   const hourlyRate = parseFloat(expert.rate_per_session || '0') || 0;
   const rate = Math.round((hourlyRate * duration) / 60);
-  const platformFee = rate * 0.0125;
+  const platformFee = Math.round(rate * 0.0125);
   const totalETB = rate + platformFee;
+  const availableBalance = userWallet ? parseFloat(userWallet.available_balance) : 0;
+  const hasInsufficientBalance = userWallet !== null && availableBalance < totalETB;
 
   return (
     <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -152,7 +175,7 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
               Confirm Consultation Booking
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Review session details and select your communication channel
+              Review session details and pre-authorize funds from your wallet
             </p>
           </div>
           <button
@@ -201,8 +224,8 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
                 type="button"
                 onClick={() => setChannel(c.key as BookingChannel)}
                 className={`desk-press py-3 px-2 text-xs font-bold rounded-xl border text-center transition-all ${channel === c.key
-                    ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-                    : 'border-border bg-muted text-foreground hover:border-primary/50'
+                  ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                  : 'border-border bg-muted text-foreground hover:border-primary/50'
                   }`}
               >
                 {c.label}
@@ -211,20 +234,43 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
           </div>
         </div>
 
-        {/* Price Breakdown */}
+        {/* Wallet Balance & Price Breakdown */}
         <div className="border-t border-border pt-4 space-y-2 text-xs text-muted-foreground relative z-10">
           <div className="flex justify-between">
             <span>Expert Rate ({duration}-min)</span>
             <span className="font-semibold">{rate.toLocaleString()} ETB</span>
           </div>
           <div className="flex justify-between">
-            <span>Platform Service Fee (1.25%)</span>
+            <span>Platform Fee (1.25%)</span>
             <span className="font-semibold">{platformFee.toLocaleString()} ETB</span>
           </div>
           <div className="flex justify-between text-sm font-bold text-foreground pt-2 border-t border-border">
-            <span>Total Escrow Amount</span>
+            <span>Total Hold Amount</span>
             <span className="text-primary">{totalETB.toLocaleString()} ETB</span>
           </div>
+
+          <div className="pt-2 flex items-center justify-between text-xs font-medium">
+            <span>Your Available Wallet Balance:</span>
+            <span className={`font-bold ${hasInsufficientBalance ? 'text-rose-500' : 'text-emerald-500'}`}>
+              {userWallet ? `${availableBalance.toFixed(2)} ETB` : 'Loading...'}
+            </span>
+          </div>
+
+          {hasInsufficientBalance && (
+            <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-600 dark:text-rose-400 flex items-center justify-between gap-2 mt-2">
+              <span>Insufficient balance to cover the {totalETB.toLocaleString()} ETB hold.</span>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  window.location.href = '/wallet';
+                }}
+                className="px-3 py-1 bg-rose-600 text-white font-bold rounded-lg hover:bg-rose-700 shrink-0"
+              >
+                Top Up Wallet
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Action Buttons */}
@@ -238,11 +284,11 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
           </button>
           <button
             type="button"
-            disabled={submitting}
+            disabled={submitting || hasInsufficientBalance}
             onClick={handleConfirmReservation}
-            className="desk-press flex-1 py-3 bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground text-xs font-bold rounded-xl transition-colors shadow-sm"
+            className="desk-press flex-1 py-3 bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground text-xs font-bold rounded-xl transition-colors shadow-sm disabled:opacity-50"
           >
-            {submitting ? 'Reserving...' : 'Confirm & Reserve Slot'}
+            {submitting ? 'Reserving...' : hasInsufficientBalance ? 'Top Up Required' : 'Confirm'}
           </button>
         </div>
       </div>

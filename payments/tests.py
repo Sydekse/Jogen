@@ -117,7 +117,7 @@ class TestWalletAndDropCallEscrow:
             "wallet_provider": "telebirr",
             "wallet_account_number": "+251911998877",
         }
-        res = self.client.post("/api/v1/payments/wallet/", payload, format="json")
+        res = self.client.post("/api/v1/payments/wallet/link/", payload, format="json")
 
         assert res.status_code == status.HTTP_200_OK
         assert res.data["status"] == "verified_and_linked"
@@ -131,7 +131,7 @@ class TestWalletAndDropCallEscrow:
             "wallet_provider": "telebirr",
             "wallet_account_number": "+251911998877",
         }
-        res = self.client.post("/api/v1/payments/wallet/", payload, format="json")
+        res = self.client.post("/api/v1/payments/wallet/link/", payload, format="json")
         assert res.status_code == status.HTTP_403_FORBIDDEN
 
     @patch("payments.chapa_service.ChapaService.refund_client")
@@ -221,3 +221,73 @@ class TestPrecisionEscrowCalculator:
 
         # Invariant check
         assert res.client_refund + res.expert_payout + res.platform_fee == Decimal("759.38")
+
+
+@pytest.mark.django_db
+class TestWalletTopUpWorkflow:
+    def setup_method(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(phone_number="+251911999888")
+        self.client.force_authenticate(user=self.user)
+
+    def test_topup_initialization_and_auto_resolution(self):
+        res = self.client.post(
+            "/api/v1/payments/wallet/topup/",
+            {"amount": "500.00"},
+            format="json",
+        )
+        assert res.status_code == status.HTTP_201_CREATED
+        assert res.data["amount"] == "500.00"
+        assert "tx_ref" in res.data
+
+        # Fetch wallet detail to confirm auto-verification and balance update
+        wallet_res = self.client.get("/api/v1/payments/wallet/")
+        assert wallet_res.status_code == status.HTTP_200_OK
+        assert Decimal(wallet_res.data["balance"]) == Decimal("500.00")
+        assert Decimal(wallet_res.data["available_balance"]) == Decimal("500.00")
+
+    def test_booking_cancellation_releases_held_wallet_funds(self):
+        from bookings.models import Booking
+        from experts.models import Expert
+        from payments.wallet_service import WalletService
+
+        # Topup 1000 ETB
+        WalletService.top_up_wallet(self.user, Decimal("1000.00"), "TOPUP-TEST-RELEASE")
+
+        expert_user = User.objects.create_user(phone_number="+251911332211")
+        expert = Expert.objects.create(user=expert_user, title="Legal Specialist", rate_per_session=Decimal("500.00"))
+
+        booking = Booking.objects.create(
+            client=self.user,
+            expert=expert,
+            channel="voice",
+            scheduled_start=timezone.now() + timezone.timedelta(days=1),
+            scheduled_end=timezone.now() + timezone.timedelta(days=1, hours=1),
+            rate_snapshot=Decimal("500.00"),
+            status="pending_payment",
+        )
+
+        # Hold funds
+        WalletService.hold_booking_funds(self.user, booking)
+        booking.status = "escrowed"
+        booking.save()
+
+        # Check reserved balance before cancellation
+        wallet_res = self.client.get("/api/v1/payments/wallet/")
+        assert Decimal(wallet_res.data["reserved_balance"]) == Decimal("500.00")
+        assert Decimal(wallet_res.data["available_balance"]) == Decimal("500.00")
+
+        # Cancel booking via API with required cancellation_reason
+        cancel_res = self.client.patch(
+            f"/api/v1/consultations/{booking.id}/",
+            {"status": "cancelled", "cancellation_reason": "Client cancelled test booking"},
+            format="json",
+        )
+        assert cancel_res.status_code == status.HTTP_200_OK
+        assert cancel_res.data["status"] == "cancelled"
+
+        # Verify held funds released back to available balance
+        wallet_res_after = self.client.get("/api/v1/payments/wallet/")
+        assert Decimal(wallet_res_after.data["reserved_balance"]) == Decimal("0.00")
+        assert Decimal(wallet_res_after.data["available_balance"]) == Decimal("1000.00")
+
