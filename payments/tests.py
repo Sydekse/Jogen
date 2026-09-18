@@ -247,8 +247,8 @@ class TestWalletTopUpWorkflow:
         assert Decimal(wallet_res.data["available_balance"]) == Decimal("500.00")
 
     def test_booking_cancellation_releases_held_wallet_funds(self):
-        from experts.models import Expert
         from bookings.models import Booking
+        from experts.models import Expert
         from payments.wallet_service import WalletService
 
         # Topup 1000 ETB

@@ -6,7 +6,6 @@ from rest_framework import serializers
 from .models import EscrowTransaction, UserWallet, WalletTransaction
 
 
-
 class EscrowInitializeSerializer(serializers.Serializer):
     booking_id = serializers.UUIDField(required=True)
     return_url = serializers.URLField(required=False)

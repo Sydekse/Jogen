@@ -48,8 +48,9 @@ class WalletService:
                 base = booking.rate_snapshot
                 payout_amount = (base * Decimal("0.9875")).quantize(Decimal("0.01"))
 
-                if hasattr(booking, "escrow_transaction") and booking.escrow_transaction and booking.escrow_transaction.raw_provider_response:
-                    settlement = booking.escrow_transaction.raw_provider_response.get("settlement", {})
+                escrow = getattr(booking, "escrow_transaction", None)
+                if escrow and escrow.raw_provider_response:
+                    settlement = escrow.raw_provider_response.get("settlement", {})
                     payout_str = settlement.get("expert_payout")
                     if payout_str:
                         payout_amount = Decimal(str(payout_str))
@@ -320,7 +321,8 @@ class WalletService:
 
         if wallet.available_balance < amount:
             raise ValueError(
-                f"Insufficient available balance for withdrawal. Requested: {amount} ETB, Available: {wallet.available_balance} ETB."
+                f"Insufficient available balance for withdrawal. "
+                f"Requested: {amount} ETB, Available: {wallet.available_balance} ETB."
             )
 
         wallet.balance -= amount

@@ -25,7 +25,9 @@ class BookingUpdateSerializer(serializers.ModelSerializer):
         status_val = data.get("status")
         reason = data.get("cancellation_reason", "")
         if status_val == "cancelled" and (not reason or not str(reason).strip()):
-            raise serializers.ValidationError({"cancellation_reason": "A reason is required to cancel this consultation."})
+            raise serializers.ValidationError(
+                {"cancellation_reason": "A reason is required to cancel this consultation."}
+            )
         return data
 
 

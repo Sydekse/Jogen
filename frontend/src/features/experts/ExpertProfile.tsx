@@ -82,7 +82,6 @@ export function ExpertProfile({ expertId }: { expertId: string }) {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [mode, setMode] = useState<"voice" | "video" | "text">("voice");
   const [duration, setDuration] = useState(30);
-  const [paymentMethod, setPaymentMethod] = useState<"telebirr" | "cbe">("telebirr");
   const [showCheckout, setShowCheckout] = useState(false);
 
   useEffect(() => {

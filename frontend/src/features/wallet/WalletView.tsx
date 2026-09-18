@@ -10,10 +10,7 @@ import {
   Clock,
   CheckCircle2,
   Lock,
-  XCircle,
   X,
-  CreditCard,
-  Building2,
   Smartphone,
   Info,
 } from "lucide-react";
@@ -25,7 +22,6 @@ export function WalletView() {
   const [wallet, setWallet] = useState<UserWalletData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [mode, setMode] = useState<"all" | "client" | "expert">("all");
 
   // Top-Up Modal State
   const [showTopUpModal, setShowTopUpModal] = useState(false);

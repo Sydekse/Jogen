@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { fetchWithAuth } from '@/src/lib/apiClient';
 import { API_BASE_URL } from '@/src/config/api';
 

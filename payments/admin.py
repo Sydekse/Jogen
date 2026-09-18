@@ -12,7 +12,16 @@ class UserWalletAdmin(admin.ModelAdmin):
 
 @admin.register(WalletTransaction)
 class WalletTransactionAdmin(admin.ModelAdmin):
-    list_display = ["id", "wallet", "transaction_type", "amount", "running_balance", "reference", "status", "created_at"]
+    list_display = [
+        "id",
+        "wallet",
+        "transaction_type",
+        "amount",
+        "running_balance",
+        "reference",
+        "status",
+        "created_at",
+    ]
     search_fields = ["reference", "wallet__user__phone_number", "wallet__user__email"]
     list_filter = ["transaction_type", "status", "created_at"]
 

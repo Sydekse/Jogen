@@ -128,7 +128,7 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
         const { checkout_url } = await paymentService.initializeEscrow(booking.id, token);
         if (onSuccess) onSuccess();
         window.location.href = checkout_url;
-      } catch (escrowErr) {
+      } catch {
         // Direct to wallet top-up if checkout initialization fails
         if (onSuccess) onSuccess();
         window.location.href = '/wallet';

@@ -13,7 +13,7 @@ from bookings.models import Booking
 
 from .chapa_service import ChapaService
 from .escrow_service import EscrowService
-from .models import EscrowTransaction, UserWallet, WalletTransaction
+from .models import EscrowTransaction, WalletTransaction
 from .serializers import (
     EscrowInitializeSerializer,
     EscrowTransactionSerializer,
