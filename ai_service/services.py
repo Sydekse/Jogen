@@ -104,9 +104,35 @@ class RAGPipelineService:
             f"User Question: {user_query}"
         )
 
-        # 4. Call Google Gemini Interactions API (the new way to generate content)
-        interaction = self.client.interactions.create(model=self.llm_model, input=prompt)
-        raw_answer = interaction.output_text.strip()
+        # 4. Call Google Gemini Interactions API with Rate Limit (429) & Quota Fallback
+        try:
+            interaction = self.client.interactions.create(model=self.llm_model, input=prompt)
+            raw_answer = interaction.output_text.strip()
+        except Exception as e:
+            print(f"[RAG GEMINI FALLBACK] Gemini API call skipped/failed: {e}")
+            if matched_docs:
+                if target_language == "am":
+                    doc_items = [
+                        f"• **ምንጭ**: {doc.doc_reference}\n{doc.content_chunk}"
+                        for doc in matched_docs[:3]
+                    ]
+                    raw_answer = (
+                        "ከተገኙት የሕግ/የደንብ ሰነዶች የተወሰዱ አግባብነት ያላቸው መረጃዎች፡\n\n"
+                        + "\n\n".join(doc_items)
+                    )
+                else:
+                    doc_items = [
+                        f"• **Source**: {doc.doc_reference}\n{doc.content_chunk}"
+                        for doc in matched_docs[:3]
+                    ]
+                    raw_answer = (
+                        "Here are the relevant legal reference documents retrieved from our database:\n\n"
+                        + "\n\n".join(doc_items)
+                    )
+            else:
+                raw_answer = (
+                    "UNCERTAIN_REGULATORY: Service currently at capacity and no matching legal references were found."
+                )
 
         # Only escalate to an expert if raw_answer starts with UNCERTAIN_REGULATORY:
         if raw_answer.startswith("UNCERTAIN_REGULATORY:"):
