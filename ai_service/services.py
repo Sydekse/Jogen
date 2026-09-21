@@ -65,6 +65,12 @@ class RAGPipelineService:
             matched_docs = []
 
         # 2. Retrieve top matching chunks from pgvector
+        print(f"\n--- [RAG DEBUG] Query: '{user_query}' | Matched Docs Count: {len(matched_docs)} ---")
+        for idx, doc in enumerate(matched_docs, 1):
+            dist = getattr(doc, "distance", "N/A")
+            print(f"[{idx}] Source: {doc.doc_reference} | Distance: {dist}")
+            print(f"     Content: {doc.content_chunk[:120]}...")
+        print("--- [RAG DEBUG END] ---\n")
 
         context_str = "\n\n".join(
             [f"Source: {doc.doc_reference}\nContent: {doc.content_chunk}" for doc in matched_docs]
@@ -101,27 +107,8 @@ class RAGPipelineService:
         # 4. Call Google Gemini Interactions API (the new way to generate content)
         interaction = self.client.interactions.create(model=self.llm_model, input=prompt)
         raw_answer = interaction.output_text.strip()
-        answer_lower = raw_answer.lower()
 
-        uncertainty_markers = (
-            "uncertain_regulatory",
-            "i'm not sure",
-            "i am not sure",
-            "cannot determine",
-            "need more information",
-            "consult a lawyer",
-            "consult an expert",
-            "outside my knowledge",
-            "insufficient context",
-            "እርግጠኛ አይደለሁም",
-            "ተጨማሪ መረጃ ያስፈልጋል",
-            "ባለሙያ ያማክሩ",
-            "ጠበቃ ያማክሩ",
-        )
-
-        is_regulatory_uncertain = any(marker in answer_lower for marker in uncertainty_markers)
-
-        # If it starts with UNCERTAIN_REGULATORY, clean up the response text for the user
+        # Only escalate to an expert if raw_answer starts with UNCERTAIN_REGULATORY:
         if raw_answer.startswith("UNCERTAIN_REGULATORY:"):
             clean_answer = raw_answer.replace("UNCERTAIN_REGULATORY:", "").strip()
             if target_language == "am":
@@ -139,20 +126,8 @@ class RAGPipelineService:
                 )
             needs_escalation = True
         else:
-            is_query_regulatory = any(
-                kw in user_query.lower() for kw in ("article", "tax", "legal", "law", "vat", "license")
-            )
-            if is_regulatory_uncertain and (
-                "regulatory" in answer_lower
-                or "tax" in answer_lower
-                or "law" in answer_lower
-                or (len(sources) == 0 and is_query_regulatory)
-            ):
-                final_answer = raw_answer
-                needs_escalation = True
-            else:
-                final_answer = raw_answer
-                needs_escalation = False
+            final_answer = raw_answer
+            needs_escalation = False
 
         return {
             "answer": final_answer,

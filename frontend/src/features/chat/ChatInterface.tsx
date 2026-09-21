@@ -31,24 +31,24 @@ const STARTER_PROMPTS = [
   {
     category: "Tax",
     title: "Corporate Tax & VAT Filings",
-    desc: "Withholding tax deadlines and VAT declaration rules (Proclamation No. 979/2016).",
-    prompt: "Explain the monthly withholding tax declaration deadlines and VAT filing rules under Proclamation No. 979/2016.",
+    desc: "Withholding tax deadlines and VAT declaration rules.",
+    prompt: "Explain monthly withholding tax declaration deadlines and VAT filing rules.",
     icon: FileText,
   },
   {
     category: "Labor",
     title: "Labour Proclamation & Contracts",
     desc: "Probation durations, severance calculation, and termination rules.",
-    prompt: "What are the statutory probation periods and severance pay calculations under Ethiopian Labour Proclamation No. 1156/2019?",
+    prompt: "What are the statutory probation periods and severance pay calculations under Ethiopian Labour Proclamation?",
     icon: BookOpen,
   },
 ];
 
-export default function ChatInterface({ 
-  sessions, 
-  setSessions, 
-  activeSessionId 
-}: { 
+export default function ChatInterface({
+  sessions,
+  setSessions,
+  activeSessionId
+}: {
   sessions: ChatSession[];
   setSessions: React.Dispatch<React.SetStateAction<ChatSession[]>>;
   activeSessionId: string;
@@ -101,7 +101,7 @@ export default function ChatInterface({
       const token = localStorage.getItem("access_token");
       const response = await fetch(`${API_BASE_URL}/chat/`, {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           "Authorization": token ? `Bearer ${token}` : ""
         },
@@ -189,7 +189,7 @@ export default function ChatInterface({
                 <JogenLogo className="w-3.5 h-3.5 text-primary-foreground" />
               </div>
             )}
-            
+
             {msg.sender === "user" ? (
               <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-sm shadow-xs px-4 py-3 text-xs sm:text-sm max-w-[85%] sm:max-w-[80%] leading-relaxed whitespace-pre-wrap">
                 {msg.text}
@@ -279,7 +279,7 @@ export default function ChatInterface({
             </div>
             <div className="bg-card border border-border/80 rounded-2xl rounded-tl-sm px-4 py-3 text-xs sm:text-sm max-w-[85%] text-muted-foreground flex items-center gap-2.5 shadow-xs relative overflow-hidden">
               <DogEarCorner size="sm" />
-              <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" /> 
+              <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
               <span className="text-xs font-medium">Thinking...</span>
             </div>
           </div>
@@ -290,20 +290,20 @@ export default function ChatInterface({
       {/* Input area */}
       <div className="p-3 sm:p-4 border-t border-border bg-card shrink-0 sticky bottom-0 z-20">
         <form onSubmit={(e) => handleSendMessage(e)} className="flex gap-2">
-          <input 
+          <input
             ref={inputRef}
-            type="text" 
+            type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             disabled={isLoading}
             placeholder={
-              isLoading 
-                ? (lang === "en" ? "Please wait..." : "እባክዎ ይጠብቁ...") 
+              isLoading
+                ? (lang === "en" ? "Please wait..." : "እባክዎ ይጠብቁ...")
                 : (lang === "en" ? "Ask a regulatory or tax question…" : "የህግ ወይም የታክስ ጥያቄ ይጠይቁ…")
             }
             className="flex-1 bg-muted/60 border border-border/80 focus:bg-card focus:border-primary rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
           />
-          <button 
+          <button
             type="submit"
             disabled={isLoading || !inputText.trim()}
             className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-primary flex items-center justify-center shrink-0 disabled:opacity-50 transition-opacity desk-press shadow-xs"

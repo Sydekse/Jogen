@@ -121,6 +121,17 @@ else:
         }
     }
 
+# Neon / Legal Vector Database Configuration
+NEON_DATABASE_URL = os.getenv("NEON_DATABASE_URL")
+if NEON_DATABASE_URL:
+    DATABASES["vector_db"] = dj_database_url.parse(
+        NEON_DATABASE_URL,
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+
+DATABASE_ROUTERS = ["ai_service.db_router.LegalVectorRouter"]
+
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
